@@ -33,12 +33,11 @@ class CustomTemplateHandler extends TemplateHandler {
       // for (const obj in xmlRoot.childNodes) {
       //   console.log("part text: ", JSON.stringify(obj))
       // }
+      //TODO group tags depending on open and close
 
       if (tags.length > 0) xmlFields.push(tags);
     }
-
     // export the result
-
     return xmlFields;
   }
 }
@@ -57,8 +56,8 @@ async function extractTags(fname) {
       tagEnd: "%}",
       // tagStart: "{{",
       // tagEnd: "}}",
-      containerTagOpen: ">>",
-      containerTagClose: "<<",
+      // containerTagOpen: ">>",
+      // containerTagClose: "<<",
     },
   });
   const templateFile = fs.readFileSync(fname);
