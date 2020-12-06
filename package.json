@@ -10,6 +10,7 @@
     "docx-templates": "^4.5.2",
     "easy-template-x": "^1.0.1",
     "fs": "^0.0.1-security",
+    "node-sass": "^5.0.0",
     "prettier": "^2.2.1",
     "react": "^17.0.1",
     "react-bootstrap": "^1.4.0",

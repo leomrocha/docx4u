@@ -3,14 +3,10 @@ import React from "react";
 var assert = require("assert");
 const fs = require("fs");
 
-var {
-  extractTags,
-  fillTemplate,
-  tags2json,
-} = require("../utils/template2form");
+var { extractTagsFromFile, fillTemplate } = require("../utils/template2form");
 
 test("tries to open a template file", async () => {
-  const obj = await extractTags(
+  const obj = await extractTagsFromFile(
     // "src/__tests__/fixtures/files/empty tag.docx"
     // "src/__tests__/fixtures/files/header and footer.docx"
     // "src/__tests__/fixtures/files/header and footer - loop.docx"
