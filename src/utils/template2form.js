@@ -2,8 +2,9 @@
  * Helps with the conversion of the docx template to a form with fields and validations
  *
  */
-import fs from "fs";
-import { TemplateHandler } from "easy-template-x";
+import fs from 'fs';
+import {promisify} from 'util';
+import {TemplateHandler} from 'easy-template-x';
 
 function singleTag2Json(tag) {
   const jsn = {
@@ -41,14 +42,14 @@ class CustomTemplateHandler extends TemplateHandler {
       let currentGroupName = undefined;
       for (const t of tags) {
         const jsnT = JSON.parse(JSON.stringify(singleTag2Json(t)));
-        if (t.disposition === "Open") {
+        if (t.disposition === 'Open') {
           // create new group with the current element as the first element
           groups.push([t]);
           currentGroupName = jsnT.name;
           jsonGroups[currentGroupName] = [];
           jsonForm[currentGroupName] = [{}];
           // create the json tag for this one:
-        } else if (t.disposition === "Close") {
+        } else if (t.disposition === 'Close') {
           // set this element in the current group
           groups[groups.length - 1].push(t);
           // set a new empty group
@@ -76,15 +77,19 @@ class CustomTemplateHandler extends TemplateHandler {
       jsonFields.push(jsonGroups);
     }
     // export the result
-    console.log("FORM generated: ", jsonForm);
-
-    return {
-      obj: xmlFields,
-      json: jsonFields,
-      form: jsonForm,
-    };
+    return Object.keys(jsonForm);
   }
 }
+
+//TODO make the delimiters custom
+const delimiters = {
+  tagStart: '{%',
+  tagEnd: '%}',
+  // tagStart: "{{",
+  // tagEnd: "}}",
+  // containerTagOpen: ">>",
+  // containerTagClose: "<<",
+};
 
 /**
  *
@@ -94,32 +99,27 @@ class CustomTemplateHandler extends TemplateHandler {
 async function extractTagsFromFile(fname) {
   // unless something else happens, I'll set the tags
   const handler = new CustomTemplateHandler({
-    //TODO make the delimiters custom
-    delimiters: {
-      tagStart: "{%",
-      tagEnd: "%}",
-      // tagStart: "{{",
-      // tagEnd: "}}",
-      // containerTagOpen: ">>",
-      // containerTagClose: "<<",
-    },
+    delimiters,
   });
-  const templateFile = fs.readFileSync(fname);
+  const templateContent = await promisify(fs.readFile)(fname);
 
   try {
-    const fields = await handler.getFields(templateFile);
+    const fields = await handler.getFields(templateContent);
     return fields;
   } catch (e) {
-    console.log("ERROR reading the file");
+    console.log('ERROR reading the file');
     console.error(e);
   }
   return {};
 }
 
-async function fillTemplate(handler, template, data) {
-  const doc = await handler.process(template, data);
-  const docXml = await handler.getXml(doc);
-  return docXml;
+async function convertFile(templatePath, outputPath, formData) {
+  const handler = new TemplateHandler({
+    delimiters,
+  });
+  const templateContent = await promisify(fs.readFile)(templatePath);
+  const convertedDoc = await handler.process(templateContent, formData);
+  await promisify(fs.writeFile)(outputPath, convertedDoc);
 }
 
-export { extractTagsFromFile, fillTemplate };
+export {extractTagsFromFile, convertFile};
