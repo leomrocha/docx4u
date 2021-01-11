@@ -1,6 +1,14 @@
 # docx4u
 Main repository for docx templating 
 
+## Setup:
+```
+yarn install
+yarn run electron:dev # start as application
+# OR
+yarn start # start as website
+```
+
 ## Problem: 
 When one has to fill out the same documents over and over again but with different texts over and over again
 examples:
