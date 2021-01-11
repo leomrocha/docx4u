@@ -5,10 +5,12 @@ import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 
-let win: BrowserWindow | null = null;
+import { registerFileService } from "../src/ipc/fileDialog";
+
+let browserWindow: BrowserWindow | null = null;
 
 function createWindow() {
-  win = new BrowserWindow({
+  browserWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -17,29 +19,36 @@ function createWindow() {
   });
 
   if (isDev) {
-    win.loadURL("http://localhost:3000/index.html");
+    browserWindow.loadURL("http://localhost:3000/index.html");
   } else {
     // 'build/index.html'
-    win.loadURL(`file://${__dirname}/../index.html`);
+    browserWindow.loadURL(`file://${__dirname}/../index.html`);
   }
 
-  win.on("closed", () => (win = null));
+  registerFileService();
+
+  browserWindow.on("closed", () => {
+    browserWindow = null;
+  });
 
   // Hot Reloading
+
   if (isDev) {
-    // 'node_modules/.bin/electronPath'
-    require("electron-reload")(__dirname, {
-      electron: path.join(
-        __dirname,
-        "..",
-        "..",
-        "node_modules",
-        ".bin",
-        "electron"
-      ),
-      forceHardReset: true,
-      hardResetMethod: "exit",
-    });
+    require("electron-reload")(
+      [__dirname, path.join(__dirname, "..", "src", "ipc")],
+      {
+        electron: path.join(
+          __dirname,
+          "..",
+          "..",
+          "node_modules",
+          ".bin",
+          "electron" + (process.platform === "win32" ? ".cmd" : "")
+        ),
+        forceHardReset: true,
+        hardResetMethod: "exit",
+      }
+    );
   }
 
   // DevTools
@@ -48,7 +57,7 @@ function createWindow() {
     .catch((err) => console.log("An error occurred: ", err));
 
   if (isDev) {
-    win.webContents.openDevTools();
+    browserWindow.webContents.openDevTools();
   }
 }
 
@@ -61,7 +70,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (win === null) {
+  if (browserWindow === null) {
     createWindow();
   }
 });
