@@ -1,8 +1,0 @@
-namespace docx4u
-{
-    [default_interface]
-    runtimeclass MainPage : Windows.UI.Xaml.Controls.Page
-    {
-        MainPage();
-    }
-}
