@@ -5,7 +5,7 @@ import installExtension, {
   REACT_DEVELOPER_TOOLS,
 } from "electron-devtools-installer";
 
-import { registerFileService } from "../src/ipc/fileDialog";
+import { registerFileService } from "../src/ipc/mainProcessService";
 
 let browserWindow: BrowserWindow | null = null;
 
@@ -25,7 +25,7 @@ function createWindow() {
     browserWindow.loadURL(`file://${__dirname}/../index.html`);
   }
 
-  registerFileService();
+  registerFileService(browserWindow);
 
   browserWindow.on("closed", () => {
     browserWindow = null;

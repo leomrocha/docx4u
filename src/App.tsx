@@ -11,7 +11,7 @@ function App() {
       {isElectron() ? (
         <SelectFileDemo />
       ) : (
-        "There is no website yet. yarn run electron:dev"
+        "There is no website yet.\n yarn run electron:dev"
       )}
     </div>
   );

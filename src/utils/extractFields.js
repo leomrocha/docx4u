@@ -1,11 +1,6 @@
-/**
- * Helps with the conversion of the docx template to a form with fields and validations
- *
- */
-import fs from 'fs';
-import {promisify} from 'util';
-import {TemplateHandler} from 'easy-template-x';
+import { TemplateHandler } from "easy-template-x";
 
+// Code below doesn't convert to Typescript gracefully.
 function singleTag2Json(tag) {
   const jsn = {
     rawText: String(tag.rawText),
@@ -15,7 +10,7 @@ function singleTag2Json(tag) {
   return jsn;
 }
 
-class CustomTemplateHandler extends TemplateHandler {
+class FieldsEnumerator extends TemplateHandler {
   async getFields(templateFile, data) {
     var xmlFields = [];
     var jsonFields = [];
@@ -42,14 +37,14 @@ class CustomTemplateHandler extends TemplateHandler {
       let currentGroupName = undefined;
       for (const t of tags) {
         const jsnT = JSON.parse(JSON.stringify(singleTag2Json(t)));
-        if (t.disposition === 'Open') {
+        if (t.disposition === "Open") {
           // create new group with the current element as the first element
           groups.push([t]);
           currentGroupName = jsnT.name;
           jsonGroups[currentGroupName] = [];
           jsonForm[currentGroupName] = [{}];
           // create the json tag for this one:
-        } else if (t.disposition === 'Close') {
+        } else if (t.disposition === "Close") {
           // set this element in the current group
           groups[groups.length - 1].push(t);
           // set a new empty group
@@ -81,45 +76,10 @@ class CustomTemplateHandler extends TemplateHandler {
   }
 }
 
-//TODO make the delimiters custom
-const delimiters = {
-  tagStart: '{%',
-  tagEnd: '%}',
-  // tagStart: "{{",
-  // tagEnd: "}}",
-  // containerTagOpen: ">>",
-  // containerTagClose: "<<",
-};
-
-/**
- *
- * @param {*} fname file name and path from where to extract the template fields for the form
- * @returns (template, fields) template object (to fill it later) and the fields (with proper elements) for the FORM
- */
-async function extractTagsFromFile(fname) {
-  // unless something else happens, I'll set the tags
-  const handler = new CustomTemplateHandler({
+export async function extractFields(delimiters, fileContent) {
+  const handler = new FieldsEnumerator({
     delimiters,
   });
-  const templateContent = await promisify(fs.readFile)(fname);
 
-  try {
-    const fields = await handler.getFields(templateContent);
-    return fields;
-  } catch (e) {
-    console.log('ERROR reading the file');
-    console.error(e);
-  }
-  return {};
+  return await handler.getFields(fileContent);
 }
-
-async function convertFile(templatePath, outputPath, formData) {
-  const handler = new TemplateHandler({
-    delimiters,
-  });
-  const templateContent = await promisify(fs.readFile)(templatePath);
-  const convertedDoc = await handler.process(templateContent, formData);
-  await promisify(fs.writeFile)(outputPath, convertedDoc);
-}
-
-export {extractTagsFromFile, convertFile};
