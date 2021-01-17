@@ -1,13 +1,11 @@
 import { store } from "../state/Store";
 import { setTemplatePath } from "../state/Settings";
 import path from "path";
-import fse, { mkdir } from "fs-extra";
+import fse from "fs-extra";
 
 import tmp from "tmp";
-import { reloadTemplates, setTagValue } from "../state/Templates";
-import { inspect } from "util";
-import { stringify } from "querystring";
 import assert from "assert";
+import { setTagValue } from "../state/Templates";
 
 const templateSetOne = "src/__tests__/fixtures/state/templateSetOne";
 const templateSetTwo = "src/__tests__/fixtures/state/templateSetTwo";

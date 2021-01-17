@@ -54,7 +54,7 @@ const templatesSlice = createSlice({
       }>
     ) {
       state.map[action.payload.templatePath] = action.payload.templateData;
-      if (state.activeTemplatesFolder == undefined)
+      if (state.activeTemplatesFolder === undefined)
         state.activeTemplatesFolder = action.payload.templatePath;
     },
 
