@@ -10,6 +10,7 @@ import fse from "fs-extra";
 import chokidar from "chokidar";
 
 import path from "path";
+import { assert } from "console";
 
 // Template is a folder containing docx files with {% %} tags.
 interface TemplateData {
@@ -39,6 +40,7 @@ const templatesSlice = createSlice({
     resetTemplates(state, action: PayloadAction<TemplatesMap>) {
       state.map = action.payload;
       const keys = Object.keys(state.map);
+      state.activeTemplatesFolder = undefined;
       if (keys.length > 0) {
         state.activeTemplatesFolder = keys[0];
       }
@@ -73,6 +75,16 @@ const templatesSlice = createSlice({
       if (action.payload in state.map) {
         state.activeTemplatesFolder = action.payload;
       }
+    },
+
+    setTagValue(state, action: PayloadAction<{ tag: string; value: string }>) {
+      if (!state.activeTemplatesFolder) return;
+
+      const activeTemplate = state.map[state.activeTemplatesFolder];
+      assert(activeTemplate);
+
+      if (activeTemplate.tags.includes(action.payload.tag))
+        activeTemplate.formData[action.payload.tag] = action.payload.value;
     },
 
     updateTemplateTags(
@@ -207,5 +219,7 @@ export const reloadTemplates = () => async (
     )
   );
 };
+
+export const setTagValue = templatesSlice.actions.setTagValue;
 
 export default templatesSlice.reducer;
