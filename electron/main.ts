@@ -18,6 +18,8 @@ function createWindow() {
     },
   });
 
+  browserWindow.setMenu(null);
+
   if (isDev) {
     browserWindow.loadURL("http://localhost:3000/index.html");
   } else {

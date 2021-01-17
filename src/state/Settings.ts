@@ -1,10 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { readFile, writeFile } from "fs";
+import fse from "fs-extra";
 import path from "path";
 import os from "os";
 import envPaths from "env-paths";
 
-import { promisify } from "util";
 import { AppDispatch, AppStateGetter } from "./Store";
 import { reloadTemplates } from "./Templates";
 
@@ -37,7 +36,7 @@ export const setTemplatePath = (templatePath: string) => async (
   await dispatch(settingsSlice.actions.setTemplatePath(templatePath));
   await dispatch(reloadTemplates());
   if (process.env.JEST_WORKER_ID === undefined) {
-    await promisify(writeFile)(
+    await fse.writeFile(
       settingsPath,
       JSON.stringify(getState().settings.templatesPath)
     );
@@ -46,14 +45,12 @@ export const setTemplatePath = (templatePath: string) => async (
 
 export const initSettings = () => async (dispatch: AppDispatch) => {
   try {
-    const parsed = JSON.parse(
-      await promisify(readFile)(settingsPath).toString()
-    );
+    const parsed = JSON.parse(await fse.readFile(settingsPath).toString());
     if (typeof parsed.templatesPath !== "string") throw new Error();
 
     await dispatch(setTemplatePath(parsed.templatePath));
     return parsed;
-  } catch {
+  } catch (e) {
     await dispatch(
       setTemplatePath(path.join(os.homedir(), "Documents", appName))
     );

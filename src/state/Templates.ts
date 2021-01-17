@@ -220,6 +220,6 @@ export const reloadTemplates = () => async (
   );
 };
 
-export const setTagValue = templatesSlice.actions.setTagValue;
+export const { setTagValue, setActiveTemplateFolder } = templatesSlice.actions;
 
 export default templatesSlice.reducer;

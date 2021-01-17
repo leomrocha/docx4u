@@ -1,9 +1,14 @@
 import React from "react";
 import "./App.css";
 
-import SelectFileDemo from "./SelectFileDemo";
-
 import isElectron from "is-electron";
+
+import { Provider as ReduxProvider } from "react-redux";
+import { ConfirmProvider } from "material-ui-confirm";
+import { store } from "./state/Store";
+import { initSettings } from "./state/Settings";
+import Main from "./views/Main";
+
 /* 
  Some other helper things that might be of use in the future:
 
@@ -28,15 +33,21 @@ import isElectron from "is-electron";
  https://github.com/NativeDocuments/docx-wasm-client-side
 */
 
+store.dispatch(initSettings());
+
 function App() {
   return (
-    <div className="App">
-      {isElectron() ? (
-        <SelectFileDemo />
-      ) : (
-        "There is no website yet.\n yarn run electron:dev"
-      )}
-    </div>
+    <ConfirmProvider>
+      <ReduxProvider store={store}>
+        <div className="App">
+          {isElectron() ? (
+            <Main />
+          ) : (
+            "There is no website yet.\n yarn run electron:dev"
+          )}
+        </div>
+      </ReduxProvider>
+    </ConfirmProvider>
   );
 }
 
