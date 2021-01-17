@@ -1,18 +1,18 @@
-import docx4js from 'docx4js';
-import tmp from 'tmp';
+import docx4js from "docx4js";
+import tmp from "tmp";
 
 // const request = require('supertest')
-var assert = require('assert');
-const fs = require('fs');
-var {extractTagsFromFile, convertFile} = require('../utils/template2form');
+var assert = require("assert");
+const fs = require("fs");
+var { extractTagsFromFile, convertFile } = require("../utils/template2form");
 
 async function getDocxInfo(filePath) {
   const docx = await docx4js.load(filePath);
   return {
     filePath: filePath,
     body: docx.officeDocument.content.text(),
-    header: docx.getObjectPart('word/header1.xml')?.text(),
-    footer: docx.getObjectPart('word/footer1.xml')?.text(),
+    header: docx.getObjectPart("word/header1.xml")?.text(),
+    footer: docx.getObjectPart("word/footer1.xml")?.text(),
   };
 }
 
@@ -41,22 +41,24 @@ async function getDocxInfo(filePath) {
 //   assert(true);
 // });
 
-test('simple conversion (no loops)', async () => {
-  const templatePath = 'src/__tests__/fixtures/files/header and footer.docx';
+test("simple conversion (no loops)", async () => {
+  const templatePath = "src/__tests__/fixtures/files/header and footer.docx";
   const tags = await extractTagsFromFile(templatePath);
   const tempFile = tmp.fileSync();
 
-  await convertFile(templatePath, tempFile.name, {
-    [tags[0]]: 'BUDDY',
-    [tags[1]]: 'HEADER',
-    [tags[2]]: 'FOOTER',
-  });
+  const formData = {
+    [tags[0]]: "BUDDY",
+    [tags[1]]: "HEADER",
+    [tags[2]]: "FOOTER",
+  };
+
+  await convertFile(templatePath, tempFile.name, formData);
 
   const docxInfo = await getDocxInfo(tempFile.name);
 
-  expect(docxInfo.footer).toBe('FOOTER');
-  expect(docxInfo.header).toBe('HEADER');
-  expect(docxInfo.body).toBe('BUDDY');
+  expect(docxInfo.footer).toBe("FOOTER");
+  expect(docxInfo.header).toBe("HEADER");
+  expect(docxInfo.body).toBe("BUDDY");
 
   // console.log(tempFile.name);
   tempFile.removeCallback();

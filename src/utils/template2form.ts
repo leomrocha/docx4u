@@ -17,11 +17,23 @@ const delimiters: Partial<Delimiters> = {
   // containerTagClose: "<<",
 };
 
-/**
- *
- * @param {*} fname file name and path from where to extract the template fields for the form
- * @returns (template, fields) template object (to fill it later) and the fields (with proper elements) for the FORM
- */
+export async function extractTagsFromDocxFiles(
+  docxFiles: string[]
+): Promise<Set<string>> {
+  const tags = new Set<string>();
+  await Promise.all(
+    docxFiles.map(async (docxFile) => {
+      try {
+        (await extractTagsFromFile(docxFile)).forEach((x) => tags.add(x));
+      } catch (e) {
+        console.error(e);
+      }
+    })
+  );
+
+  return tags;
+}
+
 async function extractTagsFromFile(fname: string): Promise<string[]> {
   // unless something else happens, I'll set the tags
   const templateContent = await promisify(fs.readFile)(fname);
@@ -31,15 +43,10 @@ async function extractTagsFromFile(fname: string): Promise<string[]> {
 async function convertFile(
   templatePath: string,
   outputPath: string,
-  formData: Map<string, string>
+  templateData: TemplateData
 ) {
   const handler = new TemplateHandler({
     delimiters,
-  });
-
-  const templateData: TemplateData = {};
-  formData.forEach((value, key) => {
-    templateData[key] = value;
   });
 
   const templateContent = await promisify(fs.readFile)(templatePath);
