@@ -1,10 +1,14 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import fs from "fs";
-import { extractTagsFromDocxFiles } from "../utils/template2form";
+import { extractTagsFromContent } from "../utils/template2form";
 
 import { promisify } from "util";
 import { AppDispatch, AppStateGetter } from "./Store";
-import { getChildDirectories, getChildFiles } from "../utils/fs";
+import {
+  CancellableFileWatcher,
+  getChildDirectories,
+  getChildFiles,
+} from "../utils/fs";
 
 import fse from "fs-extra";
 import chokidar from "chokidar";
@@ -12,57 +16,64 @@ import chokidar from "chokidar";
 import path from "path";
 import { assert } from "console";
 
-// Template is a folder containing docx files with {% %} tags.
-interface TemplateData {
-  // |tags| relate to |formData.keys|.
-  // The difference is |formData| may contain more keys than tags.
-  // The goal is to preserve data loss when changing templates.
+interface DocxFileData {
+  contentBase64?: string;
   tags: string[];
-  formData: { [tag: string]: string };
   isLoading: boolean;
 }
 
-interface TemplatesMap {
-  [templatePath: string]: TemplateData;
+// Template is a folder containing docx files with {% %} tags.
+interface TemplateData {
+  docxFiles: {
+    [path: string]: DocxFileData;
+  };
+  formData: { [tag: string]: string };
 }
 
-interface State {
-  map: TemplatesMap;
+interface SubfoldersMap {
+  [folderName: string]: TemplateData;
+}
+
+export interface TemplatesState {
+  subfolders: SubfoldersMap;
   activeTemplatesFolder?: string;
 }
 
-const initialState: State = { map: {} };
+const initialState: TemplatesState = { subfolders: {} };
 
 const templatesSlice = createSlice({
   name: "templates",
   initialState,
   reducers: {
-    resetTemplates(state, action: PayloadAction<TemplatesMap>) {
-      state.map = action.payload;
-      const keys = Object.keys(state.map);
+    resetTemplates(state, action: PayloadAction<SubfoldersMap>) {
+      state.subfolders = action.payload;
+      const keys = Object.keys(state.subfolders);
       state.activeTemplatesFolder = undefined;
       if (keys.length > 0) {
         state.activeTemplatesFolder = keys[0];
       }
     },
 
-    addTemplate(
+    addSubfolder(
       state,
       action: PayloadAction<{
-        templatePath: string;
+        fullPath: string;
         templateData: TemplateData;
       }>
     ) {
-      state.map[action.payload.templatePath] = action.payload.templateData;
+      state.subfolders[path.basename(action.payload.fullPath)] =
+        action.payload.templateData;
       if (state.activeTemplatesFolder === undefined)
-        state.activeTemplatesFolder = action.payload.templatePath;
+        state.activeTemplatesFolder = path.basename(action.payload.fullPath);
     },
 
-    removeTemplate(state, action: PayloadAction<string>) {
-      delete state.map[action.payload];
+    removeTemplate(state, action: PayloadAction<{ fullPath: string }>) {
+      delete state.subfolders[path.basename(action.payload.fullPath)];
 
-      if (action.payload === state.activeTemplatesFolder) {
-        const keys = Object.keys(state.map);
+      if (
+        path.basename(action.payload.fullPath) === state.activeTemplatesFolder
+      ) {
+        const keys = Object.keys(state.subfolders);
         if (keys.length > 0) {
           state.activeTemplatesFolder = keys[0];
         } else {
@@ -71,72 +82,92 @@ const templatesSlice = createSlice({
       }
     },
 
-    setActiveTemplateFolder(state, action: PayloadAction<string>) {
-      if (action.payload in state.map) {
-        state.activeTemplatesFolder = action.payload;
+    setActiveSubfolder(state, action: PayloadAction<{ folderName: string }>) {
+      if (path.basename(action.payload.folderName) in state.subfolders) {
+        state.activeTemplatesFolder = path.basename(action.payload.folderName);
       }
     },
 
     setTagValue(state, action: PayloadAction<{ tag: string; value: string }>) {
       if (!state.activeTemplatesFolder) return;
 
-      const activeTemplate = state.map[state.activeTemplatesFolder];
+      const activeTemplate = state.subfolders[state.activeTemplatesFolder];
       assert(activeTemplate);
 
-      if (activeTemplate.tags.includes(action.payload.tag))
-        activeTemplate.formData[action.payload.tag] = action.payload.value;
+      activeTemplate.formData[action.payload.tag] = action.payload.value;
     },
 
-    updateTemplateTags(
-      state,
-      action: PayloadAction<{ templatePath: string; tags: string[] }>
-    ) {
-      const folderData = state.map[action.payload.templatePath];
+    setDocxFileLoading(state, action: PayloadAction<{ fullPath: string }>) {
+      const folderData =
+        state.subfolders[path.basename(path.dirname(action.payload.fullPath))];
       if (!folderData) return;
 
-      folderData.isLoading = false;
-      folderData.tags = action.payload.tags;
+      folderData.docxFiles[path.basename(action.payload.fullPath)] = {
+        isLoading: true,
+        tags: [],
+      };
+    },
 
-      folderData.tags.forEach((tag) => {
-        if (!folderData.formData[tag]) {
-          folderData.formData[tag] = "";
-        }
+    updateDocxFileContent(
+      state,
+      action: PayloadAction<{
+        fullPath: string;
+        contentBase64: string;
+        tags: string[];
+      }>
+    ) {
+      const folderData =
+        state.subfolders[path.basename(path.dirname(action.payload.fullPath))];
+      if (!folderData) return;
+
+      folderData.docxFiles[path.basename(action.payload.fullPath)] = {
+        contentBase64: action.payload.contentBase64,
+        isLoading: false,
+        tags: action.payload.tags,
+      };
+
+      action.payload.tags.forEach((tag) => {
+        if (tag in folderData.formData) return;
+        folderData.formData[tag] = "";
       });
+    },
+
+    deleteDocxFile(state, action: PayloadAction<{ fullPath: string }>) {
+      const folderData =
+        state.subfolders[path.basename(path.dirname(action.payload.fullPath))];
+      if (!folderData) return;
+      delete folderData.docxFiles[path.basename(action.payload.fullPath)];
     },
   },
 });
 
-const onTemplateUpdate = (templatePath: string) => async (
+const onDocxFileUpdate = (templatePath: string) => async (
   dispatch: AppDispatch
 ) => {
-  const tags: string[] = Array.from(
-    await extractTagsFromDocxFiles(await getChildFiles(templatePath, [".docx"]))
-  ).sort();
-
   await dispatch(
-    templatesSlice.actions.updateTemplateTags({ templatePath, tags })
+    templatesSlice.actions.setDocxFileLoading({ fullPath: templatePath })
   );
+
+  let fileContent: Buffer | undefined;
+  try {
+    fileContent = await fse.readFile(templatePath);
+  } catch {}
+
+  if (fileContent) {
+    const tags = await extractTagsFromContent(fileContent);
+    await dispatch(
+      templatesSlice.actions.updateDocxFileContent({
+        fullPath: templatePath,
+        contentBase64: fileContent.toString("base64"),
+        tags,
+      })
+    );
+  } else {
+    await dispatch(
+      templatesSlice.actions.deleteDocxFile({ fullPath: templatePath })
+    );
+  }
 };
-
-// Chokidar's |close| doesn't resolve promises waiting for "ready" event.
-class CancellableFileWatcher {
-  constructor(
-    private watcher: chokidar.FSWatcher,
-    public on = watcher.on.bind(watcher)
-  ) {}
-
-  private resolveInit?: () => void;
-  async init() {
-    return new Promise<void>((resolve) => {
-      this.watcher.on("ready", resolve);
-      this.resolveInit = resolve;
-    });
-  }
-  cancel() {
-    if (this.resolveInit) this.resolveInit();
-    this.watcher.close();
-  }
-}
 
 let watcher: CancellableFileWatcher | undefined;
 
@@ -159,15 +190,15 @@ const setupWatcher = () => async (
     if (path.dirname(fileOrDir) === templatesParentDir) {
       if (eventName === "addDir") {
         await dispatch(
-          templatesSlice.actions.addTemplate({
-            templatePath: fileOrDir,
-            templateData: { tags: [], formData: {}, isLoading: true },
+          templatesSlice.actions.addSubfolder({
+            fullPath: fileOrDir,
+            templateData: { docxFiles: {}, formData: {} },
           })
         );
-
-        await dispatch(onTemplateUpdate(fileOrDir));
       } else if (eventName === "unlinkDir") {
-        dispatch(templatesSlice.actions.removeTemplate(fileOrDir));
+        dispatch(
+          templatesSlice.actions.removeTemplate({ fullPath: fileOrDir })
+        );
       }
     } else if (
       path.dirname(path.dirname(fileOrDir)) === templatesParentDir &&
@@ -179,7 +210,7 @@ const setupWatcher = () => async (
         eventName === "unlink"
       ) {
         if (await fse.pathExists(path.dirname(fileOrDir)))
-          dispatch(onTemplateUpdate(path.dirname(fileOrDir)));
+          await dispatch(onDocxFileUpdate(fileOrDir));
       }
     }
   });
@@ -199,27 +230,34 @@ export const reloadTemplates = () => async (
 
   await dispatch(setupWatcher());
 
-  const templates: TemplatesMap = {};
+  const subfolders: SubfoldersMap = {};
 
-  (await getChildDirectories(templatesParentDir)).forEach(
-    async (templatePath) => {
-      templates[templatePath] = {
-        tags: [],
-        formData: {},
-        isLoading: true,
-      };
-    }
-  );
+  (await getChildDirectories(templatesParentDir)).forEach(async (subfolder) => {
+    subfolders[path.basename(subfolder)] = {
+      docxFiles: {},
+      formData: {},
+    };
+  });
 
-  dispatch(templatesSlice.actions.resetTemplates(templates));
+  await dispatch(templatesSlice.actions.resetTemplates(subfolders));
 
   await Promise.all(
-    Object.keys(templates).map((templatePath) =>
-      dispatch(onTemplateUpdate(templatePath))
+    Object.keys(subfolders).map((subfolder) =>
+      dispatch(loadDocxFiles(path.join(templatesParentDir, subfolder)))
     )
   );
 };
 
-export const { setTagValue, setActiveTemplateFolder } = templatesSlice.actions;
+const loadDocxFiles = (parentDirectory: string) => async (
+  dispatch: AppDispatch
+) => {
+  const docxFiles = await getChildFiles(parentDirectory, [".docx"]);
+
+  await Promise.all(
+    docxFiles.map((docxFile) => dispatch(onDocxFileUpdate(docxFile)))
+  );
+};
+
+export const { setTagValue, setActiveSubfolder } = templatesSlice.actions;
 
 export default templatesSlice.reducer;

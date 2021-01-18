@@ -15,7 +15,7 @@ import {
 import { useConfirm } from "material-ui-confirm";
 
 import { AppDispatch, useTypedSelector } from "../state/Store";
-import { setActiveTemplateFolder } from "../state/Templates";
+import { setActiveSubfolder } from "../state/Templates";
 
 import path from "path";
 import { useDispatch } from "react-redux";
@@ -47,7 +47,7 @@ export default function TemplatesSelectionPanel() {
     (state) => state.settings.templatesPath
   );
 
-  const templateFolders = Object.keys(templates.map);
+  const templateFolders = Object.keys(templates.subfolders);
   const activeTemplateIndex = templateFolders.indexOf(
     templates.activeTemplatesFolder ?? ""
   );
@@ -199,7 +199,9 @@ export default function TemplatesSelectionPanel() {
         variant="scrollable"
         value={activeTemplateIndex}
         onChange={(event: React.ChangeEvent<{}>, newValue: number) => {
-          dispatch(setActiveTemplateFolder(templateFolders[newValue]));
+          dispatch(
+            setActiveSubfolder({ folderName: templateFolders[newValue] })
+          );
         }}
         aria-label="Active Template Selector"
       >

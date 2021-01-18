@@ -4,6 +4,7 @@ import { promisify } from "util";
 import filterAsync from "node-filter-async";
 import path from "path";
 import assert from "assert";
+import chokidar from "chokidar";
 
 export async function getChildDirectories(
   parentDirectory: string
@@ -36,4 +37,24 @@ export async function getChildFiles(
   );
 
   return docxFiles;
+}
+
+// Chokidar's |close| doesn't resolve promises waiting for "ready" event.
+export class CancellableFileWatcher {
+  constructor(
+    private watcher: chokidar.FSWatcher,
+    public on = watcher.on.bind(watcher)
+  ) {}
+
+  private resolveInit?: () => void;
+  async init() {
+    return new Promise<void>((resolve) => {
+      this.watcher.on("ready", resolve);
+      this.resolveInit = resolve;
+    });
+  }
+  cancel() {
+    if (this.resolveInit) this.resolveInit();
+    this.watcher.close();
+  }
 }

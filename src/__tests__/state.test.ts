@@ -1,84 +1,139 @@
-import { store } from "../state/Store";
+import { AppStateGetter, store } from "../state/Store";
 import { setTemplatePath } from "../state/Settings";
 import path from "path";
 import fse from "fs-extra";
 
 import tmp from "tmp";
 import assert from "assert";
-import { setTagValue } from "../state/Templates";
+import { setTagValue, TemplatesState } from "../state/Templates";
 
-const templateSetOne = "src/__tests__/fixtures/state/templateSetOne";
-const templateSetTwo = "src/__tests__/fixtures/state/templateSetTwo";
+import _ from "lodash";
 
-function getExpectedStateOne(templatesPath: string) {
-  return {
-    settings: {
-      templatesPath,
-    },
-    templates: {
-      activeTemplatesFolder: path.join(templatesPath, "folderThree"),
-      map: {
-        [path.join(templatesPath, "folderThree")]: {
-          isLoading: false,
-          formData: {
-            "template 1 folder 3 file A": "",
-            "template 1 folder 3 file B": "",
-          },
-          tags: ["template 1 folder 3 file A", "template 1 folder 3 file B"],
+class ExpectedState {
+  constructor(
+    public templatesLocation: string,
+    private expectedTemplatesState: TemplatesState
+  ) {
+    for (const subfolder in expectedTemplatesState.subfolders) {
+      for (const docxFile in expectedTemplatesState.subfolders[subfolder]
+        .docxFiles) {
+        expectedTemplatesState.subfolders[subfolder].docxFiles[
+          docxFile
+        ].contentBase64 = fse
+          .readFileSync(path.join(this.templatesLocation, subfolder, docxFile))
+          .toString("base64");
+      }
+    }
+
+    Object.freeze(expectedTemplatesState);
+  }
+
+  public get(parentDir: string): ReturnType<AppStateGetter> {
+    return {
+      settings: { templatesPath: parentDir },
+      templates: _.cloneDeep(this.expectedTemplatesState),
+    };
+  }
+}
+
+const expectedStateOne = new ExpectedState(
+  "src/__tests__/fixtures/state/templateSetOne",
+  {
+    activeTemplatesFolder: "folderThree",
+    subfolders: {
+      folderThree: {
+        formData: {
+          "template 1 folder 3 file A": "",
+          "template 1 folder 3 file B": "",
         },
-        [path.join(templatesPath, "folderTwo")]: {
-          isLoading: false,
-          formData: {
-            "template 1 folder 2 file A": "",
-            "template 1 folder 2 file B": "",
+        docxFiles: {
+          "A.docx": {
+            tags: ["template 1 folder 3 file A"],
+            isLoading: false,
           },
-          tags: ["template 1 folder 2 file A", "template 1 folder 2 file B"],
+          "B.docx": {
+            tags: ["template 1 folder 3 file B"],
+            isLoading: false,
+          },
+        },
+      },
+      folderTwo: {
+        formData: {
+          "template 1 folder 2 file A": "",
+          "template 1 folder 2 file B": "",
+        },
+        docxFiles: {
+          "A.docx": {
+            tags: ["template 1 folder 2 file A"],
+            isLoading: false,
+          },
+          "B.docx": {
+            tags: ["template 1 folder 2 file B"],
+            isLoading: false,
+          },
         },
       },
     },
-  };
-}
+  }
+);
 
-function getExpectedStateTwo(templatesPath: string) {
-  return {
-    settings: {
-      templatesPath,
-    },
-    templates: {
-      activeTemplatesFolder: path.join(templatesPath, "folderOne"),
-      map: {
-        [path.join(templatesPath, "folderOne")]: {
-          isLoading: false,
-          formData: {
-            "template 2 folder 1 file A": "",
-            "template 2 folder 1 file B": "",
-            "template 2 folder 1 file C": "",
-          },
-          tags: [
-            "template 2 folder 1 file A",
-            "template 2 folder 1 file B",
-            "template 2 folder 1 file C",
-          ],
+const expectedStateTwo = new ExpectedState(
+  "src/__tests__/fixtures/state/templateSetTwo",
+  {
+    activeTemplatesFolder: "folderOne",
+    subfolders: {
+      folderOne: {
+        formData: {
+          "template 2 folder 1 file A": "",
+          "template 2 folder 1 file B": "",
+          "template 2 folder 1 file C": "",
         },
-        [path.join(templatesPath, "folderThree")]: {
-          isLoading: false,
-          formData: {
-            "template 2 folder 3 file A": "",
-            "template 2 folder 3 file B": "",
+        docxFiles: {
+          "A.docx": {
+            tags: ["template 2 folder 1 file A"],
+            isLoading: false,
           },
-          tags: ["template 2 folder 3 file A", "template 2 folder 3 file B"],
+          "B.docx": {
+            tags: ["template 2 folder 1 file B"],
+            isLoading: false,
+          },
+          "C.docx": {
+            tags: ["template 2 folder 1 file C"],
+            isLoading: false,
+          },
         },
-        [path.join(templatesPath, "folderTwo")]: {
-          isLoading: false,
-          formData: {
-            "template 2 folder 2 file A": "",
+      },
+      folderThree: {
+        formData: {
+          "template 2 folder 3 file A": "",
+          "template 2 folder 3 file B": "",
+        },
+
+        docxFiles: {
+          "A.docx": {
+            tags: ["template 2 folder 3 file A"],
+            isLoading: false,
           },
-          tags: ["template 2 folder 2 file A"],
+          "B.docx": {
+            tags: ["template 2 folder 3 file B"],
+            isLoading: false,
+          },
+        },
+      },
+      folderTwo: {
+        formData: {
+          "template 2 folder 2 file A": "",
+        },
+        docxFiles: {
+          "A.docx": {
+            tags: ["template 2 folder 2 file A"],
+            isLoading: false,
+          },
         },
       },
     },
-  };
-}
+  }
+);
 
 let cleanupCallbacks: ((this: void) => void)[] = [];
 function createTempDirectory(): string {
@@ -90,129 +145,169 @@ function createTempDirectory(): string {
 }
 
 afterAll(() => {
-  //cleanupCallbacks.forEach((callback) => callback());
+  cleanupCallbacks.forEach((callback) => callback());
   cleanupCallbacks = [];
 });
 
+test("expected states are valid", async () => {
+  await store.dispatch(setTemplatePath(expectedStateOne.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateOne.get(expectedStateOne.templatesLocation)
+  );
+
+  await store.dispatch(setTemplatePath(expectedStateTwo.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateTwo.get(expectedStateTwo.templatesLocation)
+  );
+});
+
 test("reloadTemplates works when called several times", async () => {
-  await store.dispatch(setTemplatePath(templateSetOne));
-  expect(store.getState()).toStrictEqual(getExpectedStateOne(templateSetOne));
+  await store.dispatch(setTemplatePath(expectedStateOne.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateOne.get(expectedStateOne.templatesLocation)
+  );
 
-  await store.dispatch(setTemplatePath(templateSetTwo));
-  expect(store.getState()).toStrictEqual(getExpectedStateTwo(templateSetTwo));
+  await store.dispatch(setTemplatePath(expectedStateTwo.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateTwo.get(expectedStateTwo.templatesLocation)
+  );
 
-  await store.dispatch(setTemplatePath(templateSetOne));
-  expect(store.getState()).toStrictEqual(getExpectedStateOne(templateSetOne));
+  await store.dispatch(setTemplatePath(expectedStateOne.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateOne.get(expectedStateOne.templatesLocation)
+  );
 
-  await store.dispatch(setTemplatePath(templateSetOne));
-  expect(store.getState()).toStrictEqual(getExpectedStateOne(templateSetOne));
+  await store.dispatch(setTemplatePath(expectedStateOne.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateOne.get(expectedStateOne.templatesLocation)
+  );
 
-  await store.dispatch(setTemplatePath(templateSetTwo));
-  expect(store.getState()).toStrictEqual(getExpectedStateTwo(templateSetTwo));
+  await store.dispatch(setTemplatePath(expectedStateTwo.templatesLocation));
+  expect(store.getState()).toStrictEqual(
+    expectedStateTwo.get(expectedStateTwo.templatesLocation)
+  );
 });
 
 test("reloadTemplates works when called asyncrhoniously", async () => {
   await Promise.all([
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetOne)),
-    store.dispatch(setTemplatePath(templateSetTwo)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateOne.templatesLocation)),
+    store.dispatch(setTemplatePath(expectedStateTwo.templatesLocation)),
   ]);
 
-  expect(store.getState()).toStrictEqual(getExpectedStateTwo(templateSetTwo));
+  expect(store.getState()).toStrictEqual(
+    expectedStateTwo.get(expectedStateTwo.templatesLocation)
+  );
 });
 
 test("can add templates", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const newTemplatePath = path.join(directory, "test");
-  await fse.mkdir(newTemplatePath);
+  await fse.mkdir(path.join(directory, "test"));
 
   await sleep(500);
 
-  expect(store.getState().templates.map[newTemplatePath]).toStrictEqual({
-    isLoading: false,
+  expect(store.getState().templates.subfolders["test"]).toStrictEqual({
     formData: {},
-    tags: [],
+    docxFiles: {},
   });
 
   fse.copySync(
-    path.join(templateSetOne, "folderTwo", "A.docx"),
-    path.join(newTemplatePath, "newFile.docx")
+    path.join(expectedStateOne.templatesLocation, "folderTwo", "A.docx"),
+    path.join(directory, "test", "newFile.docx")
   );
 
   await sleep(500);
 
-  expect(store.getState().templates.map[newTemplatePath]).toStrictEqual({
-    isLoading: false,
+  expect(store.getState().templates.subfolders["test"]).toStrictEqual({
     formData: { "template 1 folder 2 file A": "" },
-    tags: ["template 1 folder 2 file A"],
+    docxFiles: {
+      "newFile.docx": {
+        contentBase64: fse
+          .readFileSync(
+            path.join(expectedStateOne.templatesLocation, "folderTwo", "A.docx")
+          )
+          .toString("base64"),
+        tags: ["template 1 folder 2 file A"],
+        isLoading: false,
+      },
+    },
   });
 });
 
 test("can delete templates", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const folderOnePath = path.join(directory, "folderOne");
-  await fse.remove(folderOnePath);
+  await fse.remove(path.join(directory, "folderOne"));
 
   await sleep(500);
 
-  const expectedState = getExpectedStateTwo(directory);
-  delete expectedState.templates.map[folderOnePath];
-  expectedState.templates.activeTemplatesFolder = path.join(
-    directory,
-    "folderThree"
-  );
+  const expectedState = expectedStateTwo.get(directory);
+  delete expectedState.templates.subfolders["folderOne"];
+  expectedState.templates.activeTemplatesFolder = "folderThree";
 
   expect(store.getState()).toStrictEqual(expectedState);
 });
 
+test("can add folders with files", async () => {
+  const directory = createTempDirectory();
+  await store.dispatch(setTemplatePath(directory));
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
+  await sleep(500);
+  expect(store.getState()).toStrictEqual(expectedStateTwo.get(directory));
+});
+
 test("adding files to existing templates adds new tags", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
   expect(store.getState()).toStrictEqual(expectedState);
 
-  const folderOnePath = path.join(directory, "folderOne");
-
   fse.copySync(
-    path.join(templateSetTwo, "folderTwo", "A.docx"),
-    path.join(folderOnePath, "D.docx")
+    path.join(expectedStateTwo.templatesLocation, "folderTwo", "A.docx"),
+    path.join(directory, "folderOne", "D.docx")
   );
 
-  expectedState.templates.map[folderOnePath].tags.push(
-    "template 2 folder 2 file A"
-  );
-  expectedState.templates.map[folderOnePath].formData[
+  expectedState.templates.subfolders["folderOne"].docxFiles["D.docx"] = {
+    tags: ["template 2 folder 2 file A"],
+    contentBase64: fse
+      .readFileSync(
+        path.join(expectedStateTwo.templatesLocation, "folderTwo", "A.docx")
+      )
+      .toString("base64"),
+    isLoading: false,
+  };
+
+  expectedState.templates.subfolders["folderOne"].formData[
     "template 2 folder 2 file A"
   ] = "";
 
@@ -223,22 +318,23 @@ test("adding files to existing templates adds new tags", async () => {
 
 test("removing files from existing templates removes tags", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
   expect(store.getState()).toStrictEqual(expectedState);
 
-  const folderOnePath = path.join(directory, "folderOne");
+  fse.removeSync(path.join(directory, "folderOne", "C.docx"));
 
-  fse.removeSync(path.join(folderOnePath, "C.docx"));
-
-  // formFata remain unchanged to preserve data in case if user restores file.
-  expectedState.templates.map[folderOnePath].tags = expectedState.templates.map[
-    folderOnePath
-  ].tags.filter((x) => x !== "template 2 folder 1 file C");
-
-  expect(expectedState.templates.map[folderOnePath].tags.length).toBe(2);
+  expect(
+    Object.keys(expectedState.templates.subfolders["folderOne"].docxFiles)
+      .length
+  ).toBe(3);
+  delete expectedState.templates.subfolders["folderOne"].docxFiles["C.docx"];
+  expect(
+    Object.keys(expectedState.templates.subfolders["folderOne"].docxFiles)
+      .length
+  ).toBe(2);
 
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
@@ -246,10 +342,10 @@ test("removing files from existing templates removes tags", async () => {
 
 test("restoring files restores tags", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
 
   await Promise.all([
     store.dispatch(
@@ -265,41 +361,43 @@ test("restoring files restores tags", async () => {
 
   assert(expectedState.templates.activeTemplatesFolder);
   const expectedFormData =
-    expectedState.templates.map[expectedState.templates.activeTemplatesFolder]
-      .formData;
+    expectedState.templates.subfolders[
+      expectedState.templates.activeTemplatesFolder
+    ].formData;
   expectedFormData["template 2 folder 1 file A"] = "Value A";
   expectedFormData["template 2 folder 1 file B"] = "Value B";
   expectedFormData["template 2 folder 1 file C"] = "Value C";
 
   expect(store.getState()).toStrictEqual(expectedState);
 
-  const folderOnePath = path.join(directory, "folderOne");
-  fse.removeSync(path.join(folderOnePath, "C.docx"));
+  fse.removeSync(path.join(directory, "folderOne", "C.docx"));
 
-  // formFata remain unchanged to preserve data in case if user restores file.
-  expectedState.templates.map[folderOnePath].tags = expectedState.templates.map[
-    folderOnePath
-  ].tags.filter((x) => x !== "template 2 folder 1 file C");
-
-  expect(expectedState.templates.map[folderOnePath].tags.length).toBe(2);
+  delete expectedState.templates.subfolders["folderOne"].docxFiles["C.docx"];
 
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
 
   fse.copySync(
-    path.join(templateSetTwo, "folderOne", "C.docx"),
+    path.join(expectedStateTwo.templatesLocation, "folderOne", "C.docx"),
     path.join(directory, "folderOne", "C.docx")
   );
 
-  expectedState.templates.map[folderOnePath].tags.push(
-    "template 2 folder 1 file C"
-  );
+  expectedState.templates.subfolders["folderOne"].docxFiles["C.docx"] = {
+    tags: ["template 2 folder 1 file C"],
+    contentBase64: fse
+      .readFileSync(
+        path.join(expectedStateTwo.templatesLocation, "folderOne", "C.docx")
+      )
+      .toString("base64"),
+    isLoading: false,
+  };
+
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
 
   const activeTemplateFolder = store.getState().templates.activeTemplatesFolder;
   assert(activeTemplateFolder);
-  const formData = store.getState().templates.map[activeTemplateFolder]
+  const formData = store.getState().templates.subfolders[activeTemplateFolder]
     .formData;
 
   expect(formData["template 2 folder 1 file A"]).toBe("Value A");
@@ -309,25 +407,22 @@ test("restoring files restores tags", async () => {
 
 test("can change templates folder", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
 
   fse.moveSync(
     path.join(directory, "folderOne"),
     path.join(directory, "folder1")
   );
 
-  expectedState.templates.activeTemplatesFolder = path.join(
-    directory,
-    "folderThree"
-  );
+  expectedState.templates.activeTemplatesFolder = "folderThree";
 
-  expectedState.templates.map[path.join(directory, "folder1")] =
-    expectedState.templates.map[path.join(directory, "folderOne")];
+  expectedState.templates.subfolders["folder1"] =
+    expectedState.templates.subfolders["folderOne"];
 
-  delete expectedState.templates.map[path.join(directory, "folderOne")];
+  delete expectedState.templates.subfolders["folderOne"];
 
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
@@ -335,14 +430,19 @@ test("can change templates folder", async () => {
 
 test("can rename file", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
   fse.moveSync(
     path.join(directory, "folderOne", "A.docx"),
     path.join(directory, "folderOne", "D.docx")
   );
+
+  expectedState.templates.subfolders["folderOne"].docxFiles["D.docx"] =
+    expectedState.templates.subfolders["folderOne"].docxFiles["A.docx"];
+
+  delete expectedState.templates.subfolders["folderOne"].docxFiles["A.docx"];
 
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
@@ -358,7 +458,7 @@ test("first template becomes active", async () => {
     },
 
     templates: {
-      map: {},
+      subfolders: {},
       activeTemplatesFolder: undefined,
     },
   };
@@ -367,11 +467,10 @@ test("first template becomes active", async () => {
 
   fse.mkdirSync(path.join(directory, "temp"));
 
-  expectedState.templates.activeTemplatesFolder = path.join(directory, "temp");
-  expectedState.templates.map[path.join(directory, "temp")] = {
+  expectedState.templates.activeTemplatesFolder = "temp";
+  expectedState.templates.subfolders["temp"] = {
     formData: {},
-    tags: [],
-    isLoading: false,
+    docxFiles: {},
   };
 
   await sleep(500);
@@ -380,22 +479,18 @@ test("first template becomes active", async () => {
 
 test("deleting last template unsets active template", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
   await fse.remove(path.join(directory, "folderOne"));
 
   await sleep(500);
-  expect(store.getState().templates.activeTemplatesFolder).toBe(
-    path.join(directory, "folderThree")
-  );
+  expect(store.getState().templates.activeTemplatesFolder).toBe("folderThree");
 
   await fse.remove(path.join(directory, "folderThree"));
 
   await sleep(500);
-  expect(store.getState().templates.activeTemplatesFolder).toBe(
-    path.join(directory, "folderTwo")
-  );
+  expect(store.getState().templates.activeTemplatesFolder).toBe("folderTwo");
 
   await fse.remove(path.join(directory, "folderTwo"));
 
@@ -407,7 +502,7 @@ test("deleting last template unsets active template", async () => {
     },
 
     templates: {
-      map: {},
+      subfolders: {},
       activeTemplatesFolder: undefined,
     },
   });
@@ -415,10 +510,10 @@ test("deleting last template unsets active template", async () => {
 
 test("files in the parent directory are ignored", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
 
   fse.copySync(
     path.join(directory, "folderOne", "A.docx"),
@@ -431,10 +526,10 @@ test("files in the parent directory are ignored", async () => {
 
 test("dirs in children directories are ignored", async () => {
   const directory = createTempDirectory();
-  fse.copySync(templateSetTwo, directory);
+  fse.copySync(expectedStateTwo.templatesLocation, directory);
   await store.dispatch(setTemplatePath(directory));
 
-  const expectedState = getExpectedStateTwo(directory);
+  const expectedState = expectedStateTwo.get(directory);
 
   fse.copySync(
     path.join(directory, "folderTwo"),
