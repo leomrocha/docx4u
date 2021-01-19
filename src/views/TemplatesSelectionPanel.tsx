@@ -1,16 +1,4 @@
-import {
-  Tabs,
-  Tab,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContentText,
-  DialogActions,
-  TextField,
-  DialogContent,
-  makeStyles,
-  Typography,
-} from "@material-ui/core";
+import { Tabs, Tab, Button, makeStyles, Typography } from "@material-ui/core";
 
 import { useConfirm } from "material-ui-confirm";
 
@@ -22,6 +10,7 @@ import { useDispatch } from "react-redux";
 import React from "react";
 
 import fse from "fs-extra";
+import RenameDialog from "./RenameDialog";
 
 const useStyles = makeStyles({
   conatiner: {
@@ -31,6 +20,9 @@ const useStyles = makeStyles({
   },
   buttons: {
     display: "flex",
+    "& button": {
+      margin: 3,
+    },
   },
   tabs: {
     alignSelf: "flex-end",
@@ -55,19 +47,8 @@ export default function TemplatesSelectionPanel() {
   const [dialogOpen, setDialogOpen] = React.useState<"new" | "rename" | false>(
     false
   );
-  const [newTeplateName, setNewTemplateName] = React.useState("My Template");
 
   const dispatch: AppDispatch = useDispatch();
-
-  const isNameUnique = (name: string): boolean => {
-    return !templateFolders.includes(newTeplateName);
-  };
-
-  const hasUnsupportedSymbols = (name: string): boolean => {
-    return Array.from(name).some((char) =>
-      ["/", "\\", "?", "*", ":", "?", '"', "<", ">", "|"].includes(char)
-    );
-  };
 
   return (
     <div className={styles.conatiner}>
@@ -87,7 +68,6 @@ export default function TemplatesSelectionPanel() {
           size="small"
           onClick={() => {
             setDialogOpen("new");
-            setNewTemplateName("My Template");
           }}
         >
           Add
@@ -98,9 +78,6 @@ export default function TemplatesSelectionPanel() {
           disabled={templates.activeTemplatesFolder === undefined}
           onClick={() => {
             setDialogOpen("rename");
-            setNewTemplateName(
-              path.basename(templates.activeTemplatesFolder ?? "")
-            );
           }}
         >
           Rename
@@ -131,66 +108,32 @@ export default function TemplatesSelectionPanel() {
         </Button>
       </div>
 
-      <Dialog
+      <RenameDialog
+        existingItems={templateFolders}
         open={dialogOpen !== false}
+        initialName={
+          dialogOpen === "new"
+            ? "My Template"
+            : templates.activeTemplatesFolder ?? ""
+        }
+        onRenamed={(newTeplateName) => {
+          if (dialogOpen === "rename") {
+            if (!templates.activeTemplatesFolder) return;
+            fse.move(
+              path.join(parentDirectory, templates.activeTemplatesFolder),
+              path.join(parentDirectory, newTeplateName)
+            );
+          } else if (dialogOpen === "new") {
+            fse.ensureDir(path.join(parentDirectory, newTeplateName));
+          }
+
+          setDialogOpen(false);
+        }}
+        confirmButtonText={dialogOpen === "new" ? "Create" : "Rename"}
         onClose={() => {
           setDialogOpen(false);
         }}
-        aria-labelledby="dialog-title"
-      >
-        <DialogTitle id="dialog-title">New Template Name</DialogTitle>
-        <DialogContent>
-          <DialogContentText hidden={isNameUnique(newTeplateName)}>
-            Template name should be unique.
-          </DialogContentText>
-
-          <DialogContentText hidden={!hasUnsupportedSymbols(newTeplateName)}>
-            {`Template name cannot contain any of the following characters: \\ / : * ? " < > |`}
-          </DialogContentText>
-
-          <DialogContentText hidden={newTeplateName.length > 0}>
-            Empty names are not allowed.
-          </DialogContentText>
-
-          <TextField
-            autoFocus
-            margin="dense"
-            value={newTeplateName}
-            onChange={(event: { target: { value: string } }) => {
-              setNewTemplateName(event.target.value);
-            }}
-            fullWidth
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDialogOpen(false)} color="primary">
-            Cancel
-          </Button>
-          <Button
-            onClick={() => {
-              if (dialogOpen === "rename") {
-                if (!templates.activeTemplatesFolder) return;
-                fse.move(
-                  path.join(parentDirectory, templates.activeTemplatesFolder),
-                  path.join(parentDirectory, newTeplateName)
-                );
-              } else if (dialogOpen === "new") {
-                fse.ensureDir(path.join(parentDirectory, newTeplateName));
-              }
-
-              setDialogOpen(false);
-            }}
-            disabled={
-              hasUnsupportedSymbols(newTeplateName) ||
-              !isNameUnique(newTeplateName) ||
-              newTeplateName.length === 0
-            }
-            color="secondary"
-          >
-            {dialogOpen === "new" ? "Create" : "Rename"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      ></RenameDialog>
       <Tabs
         className={styles.tabs}
         orientation="vertical"

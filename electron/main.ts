@@ -1,8 +1,9 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, globalShortcut } from "electron";
 import * as path from "path";
 import * as isDev from "electron-is-dev";
 import installExtension, {
   REACT_DEVELOPER_TOOLS,
+  REDUX_DEVTOOLS,
 } from "electron-devtools-installer";
 
 import { registerFileService } from "../src/ipc/mainProcessService";
@@ -16,6 +17,15 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
     },
+  });
+
+  globalShortcut.register("f5", function () {
+    console.log("f5 is pressed");
+    browserWindow?.reload();
+  });
+  globalShortcut.register("CommandOrControl+R", function () {
+    console.log("CommandOrControl+R is pressed");
+    browserWindow?.reload();
   });
 
   browserWindow.setMenu(null);
@@ -54,6 +64,10 @@ function createWindow() {
   }
 
   // DevTools
+  installExtension(REDUX_DEVTOOLS)
+    .then((name) => console.log(`Added Extension:  ${name}`))
+    .catch((err) => console.log("An error occurred: ", err));
+
   installExtension(REACT_DEVELOPER_TOOLS)
     .then((name) => console.log(`Added Extension:  ${name}`))
     .catch((err) => console.log("An error occurred: ", err));
