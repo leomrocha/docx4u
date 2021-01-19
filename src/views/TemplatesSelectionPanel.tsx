@@ -43,7 +43,7 @@ export default function TemplatesSelectionPanel() {
   const confirm = useConfirm();
 
   const templates = useTypedSelector((state) => state.templates);
-  const templatesParentDirectory = useTypedSelector(
+  const parentDirectory = useTypedSelector(
     (state) => state.settings.templatesPath
   );
 
@@ -55,14 +55,12 @@ export default function TemplatesSelectionPanel() {
   const [dialogOpen, setDialogOpen] = React.useState<"new" | "rename" | false>(
     false
   );
-  const [newTeplateName, setNewTemplateName] = React.useState("New Template");
+  const [newTeplateName, setNewTemplateName] = React.useState("My Template");
 
   const dispatch: AppDispatch = useDispatch();
 
   const isNameUnique = (name: string): boolean => {
-    return !templateFolders.includes(
-      path.join(templatesParentDirectory, newTeplateName)
-    );
+    return !templateFolders.includes(newTeplateName);
   };
 
   const hasUnsupportedSymbols = (name: string): boolean => {
@@ -89,7 +87,7 @@ export default function TemplatesSelectionPanel() {
           size="small"
           onClick={() => {
             setDialogOpen("new");
-            setNewTemplateName("New Template");
+            setNewTemplateName("My Template");
           }}
         >
           Add
@@ -121,7 +119,9 @@ export default function TemplatesSelectionPanel() {
               });
 
               if (!templates.activeTemplatesFolder) return;
-              await fse.remove(templates.activeTemplatesFolder);
+              await fse.remove(
+                path.join(parentDirectory, templates.activeTemplatesFolder)
+              );
             } catch (e) {
               console.error(e);
             }
@@ -171,13 +171,11 @@ export default function TemplatesSelectionPanel() {
               if (dialogOpen === "rename") {
                 if (!templates.activeTemplatesFolder) return;
                 fse.move(
-                  templates.activeTemplatesFolder,
-                  path.join(templatesParentDirectory, newTeplateName)
+                  path.join(parentDirectory, templates.activeTemplatesFolder),
+                  path.join(parentDirectory, newTeplateName)
                 );
               } else if (dialogOpen === "new") {
-                fse.ensureDir(
-                  path.join(templatesParentDirectory, newTeplateName)
-                );
+                fse.ensureDir(path.join(parentDirectory, newTeplateName));
               }
 
               setDialogOpen(false);

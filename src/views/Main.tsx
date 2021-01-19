@@ -17,11 +17,14 @@ const useStyles = makeStyles((theme) => ({
   content: {
     display: "flex",
     height: "100%",
+    width: "100%",
+
     alignItems: "flex-start",
   },
 
   activeTemplate: {
     height: "100%",
+    width: "100%",
     borderLeft: `1px solid ${theme.palette.divider}`,
   },
 
@@ -45,6 +48,7 @@ export default function Main() {
     <div className={styles.conatiner}>
       <AppBar position="static">
         <Tabs
+          selectionFollowsFocus
           className={styles.tabs}
           value={selectedTab}
           onChange={(e, value) => {
