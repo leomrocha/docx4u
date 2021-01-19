@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut } from "electron";
+import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import * as isDev from "electron-is-dev";
 import installExtension, {
@@ -19,13 +19,11 @@ function createWindow() {
     },
   });
 
-  globalShortcut.register("f5", function () {
-    console.log("f5 is pressed");
-    browserWindow?.reload();
-  });
-  globalShortcut.register("CommandOrControl+R", function () {
-    console.log("CommandOrControl+R is pressed");
-    browserWindow?.reload();
+  browserWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.control && input.key.toLowerCase() === "r") {
+      browserWindow?.reload();
+      event.preventDefault();
+    }
   });
 
   browserWindow.setMenu(null);
