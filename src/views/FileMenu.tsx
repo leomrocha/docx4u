@@ -9,19 +9,21 @@ import path from "path";
 
 import {
   Button,
+  Chip,
   Dialog,
   makeStyles,
   Slide,
   Typography,
 } from "@material-ui/core";
 
-import { Skeleton } from "@material-ui/lab";
+import { Alert, AlertTitle, Skeleton } from "@material-ui/lab";
 import React from "react";
 
 const useStyles = makeStyles({
-  listItem: {
+  fileMenu: {
     display: "flex",
     margin: 10,
+    padding: 10,
     height: "100%",
     alignItems: "center",
     justifyContent: "space-around",
@@ -30,7 +32,9 @@ const useStyles = makeStyles({
 
   buttons: {
     display: "flex",
-    flexDirection: "column",
+    flex: 1,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
     "& button": {
       margin: 3,
     },
@@ -38,7 +42,7 @@ const useStyles = makeStyles({
 
   fileInfo: {
     margin: 3,
-    flex: 1,
+    flex: 3,
     display: "flex",
     flexDirection: "column",
     alignSelf: "stretch",
@@ -47,12 +51,9 @@ const useStyles = makeStyles({
   tags: {
     display: "flex",
     borderRadius: 10,
-    border: "1px solid lightGray",
-    "& div": {
-      backgroundColor: "lightGray",
-      margin: 2,
-      padding: 2,
-      borderRadius: 4,
+    margin: "auto",
+    "& > *": {
+      margin: 5,
     },
   },
 
@@ -90,34 +91,33 @@ export default function FileMenu(props: FileMenuProps) {
   // TODO: fix layout when there are too many tags.
 
   return (
-    <div className={styles.listItem}>
+    <div className={styles.fileMenu}>
       {fileData.isLoading ? (
         <Skeleton variant="rect" className={styles.skeleton}></Skeleton>
       ) : (
         <React.Fragment>
           <div className={styles.fileInfo}>
-            <Typography>{fileName}</Typography>
+            <Typography color="primary">{fileName}</Typography>
             <div className={styles.tags}>
               {fileData.malformed ? (
-                <div style={{ color: "red" }}>
+                <Alert severity="error">
                   Failed reading the file. Please, strip sensitive information
                   and submit the file to our team, so we can fix that. TODO: Add
                   link
-                </div>
+                </Alert>
               ) : fileData.tags.length === 0 ? (
                 <React.Fragment>
-                  <div style={{ color: "red" }}>
-                    {" "}
-                    This file doesn't contain tags!
-                  </div>
-                  <br />
-                  <div>
-                    Click edit and insert tags using this format:{" "}
-                    {`{%Tag Name%}`}
-                  </div>
+                  <Alert severity="warning">
+                    <AlertTitle>No tags found!</AlertTitle>
+                    Click edit and insert tags using this format:
+                    <br></br>
+                    <b> {`{%Tag Name%}`}</b>
+                  </Alert>
                 </React.Fragment>
               ) : (
-                fileData.tags.map((x) => <div key={x}>{x}</div>)
+                fileData.tags.map((x) => (
+                  <Chip key={x} label={x} color="secondary"></Chip>
+                ))
               )}
             </div>
           </div>

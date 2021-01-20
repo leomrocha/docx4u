@@ -13,7 +13,7 @@ import {
 import fse from "fs-extra";
 import chokidar from "chokidar";
 
-import path from "path";
+import path, { basename } from "path";
 import { assert } from "console";
 
 export interface DocxFileData {
@@ -148,6 +148,8 @@ const templatesSlice = createSlice({
 const onDocxFileUpdate = (templatePath: string) => async (
   dispatch: AppDispatch
 ) => {
+  if (basename(templatePath)[0] === "~") return;
+
   await dispatch(
     templatesSlice.actions.setDocxFileLoading({ fullPath: templatePath })
   );

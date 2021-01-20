@@ -1,10 +1,22 @@
-import { TextField } from "@material-ui/core";
+import { makeStyles, TextField } from "@material-ui/core";
 import React from "react";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../state/Store";
 import { setTagValue, useActiveTemplate } from "../state/Templates";
 
+const useStyles = makeStyles((theme) => ({
+  conatiner: {
+    display: "flex",
+    alignItems: "flex-start",
+    flexDirection: "column",
+    height: "100vh",
+    backgroundColor: theme.palette.background.default,
+  },
+}));
+
 export default function GenerateDocuments() {
+  const styles = useStyles();
+
   const dispatch: AppDispatch = useDispatch();
   const activeTemplate = useActiveTemplate();
   const enabledTags = new Set<string>();

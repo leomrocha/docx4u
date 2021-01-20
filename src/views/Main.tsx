@@ -12,13 +12,13 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "flex-start",
     flexDirection: "column",
     height: "100vh",
+    backgroundColor: theme.palette.background.default,
   },
 
   content: {
     display: "flex",
-    height: "100%",
     width: "100%",
-
+    overflow: "hidden",
     alignItems: "flex-start",
   },
 

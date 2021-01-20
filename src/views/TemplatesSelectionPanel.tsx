@@ -12,7 +12,7 @@ import React from "react";
 import fse from "fs-extra";
 import RenameDialog from "./RenameDialog";
 
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme) => ({
   conatiner: {
     display: "flex",
     flexDirection: "column",
@@ -27,7 +27,7 @@ const useStyles = makeStyles({
   tabs: {
     alignSelf: "flex-end",
   },
-});
+}));
 
 export default function TemplatesSelectionPanel() {
   const styles = useStyles();
