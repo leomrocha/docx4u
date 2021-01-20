@@ -1,193 +1,66 @@
-import { Button, Dialog, makeStyles, Slide } from "@material-ui/core";
+import { makeStyles, Paper } from "@material-ui/core";
 import React from "react";
-import AutoSizer, { Size } from "react-virtualized-auto-sizer";
-import { useConfirm } from "material-ui-confirm";
-
-import { FixedSizeList as WindowedList } from "react-window";
-
-import { useTypedSelector } from "../state/Store";
-
-import Skeleton from "@material-ui/lab/Skeleton";
+import { VirtualizedList } from "./VirtualizedList";
 
 import { useDropzone } from "react-dropzone";
 import fse from "fs-extra";
 import path from "path";
-import { TransitionProps } from "@material-ui/core/transitions/transition";
-import EditDocx from "./EditDocx";
-import RenameDialog from "./RenameDialog";
+
+import { useActiveFolderPath, useActiveTemplate } from "../state/Templates";
+import FileMenu from "./FileMenu";
+
 const useStyles = makeStyles({
   conatiner: {
-    display: "flex",
-    alignItems: "flex-start",
-    flexDirection: "column",
     height: "100%",
     width: "100%",
+    overflowY: "scroll",
+    willChange: "transform",
   },
   dropZone: {
     display: "flex",
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
-    width: "95%",
     height: "100px",
     border: "solid 2px lightgray",
-    marginTop: 10,
+    margin: 10,
     borderRadius: 10,
   },
 
-  listItem: {
-    display: "flex",
-    margin: 10,
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  buttons: {
-    "& button": {
-      margin: 3,
-    },
-  },
-
-  fileInfo: {
-    margin: 3,
-  },
-
-  // workaround for inability of react-virtualized-auto-sizer to fit into flexbox.
-  fullSize: {
-    height: "100%",
-    width: "100%",
-  },
+  paper: { margin: 10 },
 });
 
-function useActiveFolderPath() {
-  return useTypedSelector((state) =>
-    path.join(
-      state.settings.templatesPath,
-      state.templates.activeTemplatesFolder ?? ""
-    )
-  );
+interface EntryProps {
+  key: string;
+  fileName: string;
 }
 
-function useDocxFiles() {
-  return useTypedSelector(
-    (state) =>
-      state.templates.subfolders[state.templates.activeTemplatesFolder ?? ""]
-        ?.docxFiles
-  );
-}
-const Transition = React.forwardRef(function Transition(
-  props: TransitionProps & { children?: React.ReactElement },
-  ref: React.Ref<unknown>
-) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
-
-const Row = (props: { index: number; style: any }) => {
-  const styles = useStyles();
-
-  const activeFolderPath = useActiveFolderPath();
-  const docxFiles = useDocxFiles();
-  const fileNames = Object.keys(docxFiles);
-  const fileName = fileNames[props.index];
-  const fileData = docxFiles[fileName];
-
-  const [editOpen, setEditOpen] = React.useState(false);
-  const [renameOpen, setRenameOpen] = React.useState(false);
-
-  const confirm = useConfirm();
-
-  return (
-    <div style={props.style}>
-      <div
-        style={{ backgroundColor: props.index % 2 ? "white" : "lightblue" }}
-        className={styles.listItem}
-      >
-        {fileData.isLoading ? (
-          <Skeleton variant="rect" className={styles.fullSize}></Skeleton>
-        ) : (
-          <React.Fragment>
-            <div className={styles.fileInfo}>{fileName}</div>
-
-            <div className={styles.buttons}>
-              <Button
-                onClick={() => {
-                  setEditOpen(true);
-                }}
-                variant="outlined"
-              >
-                Edit
-              </Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await confirm({
-                      description:
-                        "This will irreversably delete " +
-                        fileName +
-                        ". Continue?",
-                      confirmationText: "Yes",
-                      cancellationText: "No,",
-                    });
-                    fse.unlink(path.join(activeFolderPath, fileName));
-                  } catch {}
-                }}
-                variant="outlined"
-              >
-                Delete
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setRenameOpen(true);
-                }}
-              >
-                Rename
-              </Button>
-              <RenameDialog
-                open={renameOpen}
-                onClose={() => {
-                  setRenameOpen(false);
-                }}
-                initialName={path.basename(fileName, ".docx")}
-                confirmButtonText="Rename"
-                onRenamed={(newName) => {
-                  fse.move(
-                    path.join(activeFolderPath, fileName),
-                    path.join(activeFolderPath, newName + ".docx")
-                  );
-                  setRenameOpen(false);
-                }}
-                existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
-              ></RenameDialog>
-              <Dialog
-                fullScreen
-                open={editOpen}
-                onClose={() => {
-                  setEditOpen(false);
-                }}
-                TransitionComponent={Transition}
-              >
-                <EditDocx
-                  fullPath={path.join(activeFolderPath, fileName)}
-                  base64Content={fileData.contentBase64 ?? ""}
-                ></EditDocx>
-              </Dialog>
-            </div>
-          </React.Fragment>
-        )}
+export const Entry = React.forwardRef<HTMLTableRowElement, EntryProps>(
+  (props, ref) => {
+    const styles = useStyles();
+    return (
+      <div ref={ref} className={styles.paper}>
+        <Paper>
+          <FileMenu fileName={props.fileName}></FileMenu>
+        </Paper>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+
+function Placeholder(props: { height: number }) {
+  return <div style={{ height: props.height }}> </div>;
+}
 
 export default function EditTemplate() {
   const activeFolderPath = useActiveFolderPath();
-  const docxFiles = useDocxFiles();
+  const docxFiles = useActiveTemplate()?.docxFiles;
 
   const [dropZoneError, setDropZoneError] = React.useState("");
 
   const styles = useStyles();
+
+  const scrollableContainerRef = React.useRef(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (files) => {
@@ -227,7 +100,7 @@ export default function EditTemplate() {
   if (!docxFiles) return null;
 
   return (
-    <div className={styles.conatiner}>
+    <div className={styles.conatiner} ref={scrollableContainerRef}>
       <div className={styles.dropZone} {...getRootProps()}>
         <input {...getInputProps()} />
         {dropZoneError ? (
@@ -238,23 +111,17 @@ export default function EditTemplate() {
           <p>Drop docx files here or click this area</p>
         )}
       </div>
-      <div className={styles.fullSize}>
-        <AutoSizer>
-          {(size: Size): React.ReactNode => {
-            return (
-              <WindowedList
-                className="List"
-                height={size.height}
-                itemCount={Object.keys(docxFiles).length}
-                itemSize={200}
-                width={size.width}
-              >
-                {Row}
-              </WindowedList>
-            );
-          }}
-        </AutoSizer>{" "}
-      </div>
+
+      <VirtualizedList
+        entries={Object.keys(docxFiles).map((x) => ({
+          key: x,
+          fileName: x,
+        }))}
+        ItemComponent={Entry}
+        PlaceholderComponent={Placeholder}
+        scrollableContainerRef={scrollableContainerRef}
+        defaultHeight={80}
+      />
     </div>
   );
 }

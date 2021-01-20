@@ -3,7 +3,7 @@ import fs from "fs";
 import { extractTagsFromContent } from "../utils/template2form";
 
 import { promisify } from "util";
-import { AppDispatch, AppStateGetter } from "./Store";
+import { AppDispatch, AppStateGetter, useTypedSelector } from "./Store";
 import {
   CancellableFileWatcher,
   getChildDirectories,
@@ -16,10 +16,11 @@ import chokidar from "chokidar";
 import path from "path";
 import { assert } from "console";
 
-interface DocxFileData {
+export interface DocxFileData {
   contentBase64?: string;
   tags: string[];
   isLoading: boolean;
+  malformed: boolean;
 }
 
 // Template is a folder containing docx files with {% %} tags.
@@ -105,6 +106,7 @@ const templatesSlice = createSlice({
       folderData.docxFiles[path.basename(action.payload.fullPath)] = {
         isLoading: true,
         tags: [],
+        malformed: false,
       };
     },
 
@@ -114,6 +116,7 @@ const templatesSlice = createSlice({
         fullPath: string;
         contentBase64: string;
         tags: string[];
+        malformed: boolean;
       }>
     ) {
       const folderData =
@@ -124,6 +127,7 @@ const templatesSlice = createSlice({
         contentBase64: action.payload.contentBase64,
         isLoading: false,
         tags: action.payload.tags,
+        malformed: action.payload.malformed,
       };
 
       action.payload.tags.forEach((tag) => {
@@ -154,12 +158,19 @@ const onDocxFileUpdate = (templatePath: string) => async (
   } catch {}
 
   if (fileContent) {
-    const tags = await extractTagsFromContent(fileContent);
+    let malformed = false;
+    let tags: string[] = [];
+    try {
+      tags = await extractTagsFromContent(fileContent);
+    } catch {
+      malformed = true;
+    }
     await dispatch(
       templatesSlice.actions.updateDocxFileContent({
         fullPath: templatePath,
         contentBase64: fileContent.toString("base64"),
         tags,
+        malformed,
       })
     );
   } else {
@@ -257,6 +268,22 @@ const loadDocxFiles = (parentDirectory: string) => async (
     docxFiles.map((docxFile) => dispatch(onDocxFileUpdate(docxFile)))
   );
 };
+
+export function useActiveFolderPath() {
+  return useTypedSelector((state) =>
+    path.join(
+      state.settings.templatesPath,
+      state.templates.activeTemplatesFolder ?? ""
+    )
+  );
+}
+
+export function useActiveTemplate() {
+  return useTypedSelector(
+    (state) =>
+      state.templates.subfolders[state.templates.activeTemplatesFolder ?? ""]
+  );
+}
 
 export const { setTagValue, setActiveSubfolder } = templatesSlice.actions;
 

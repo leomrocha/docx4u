@@ -23,6 +23,13 @@ function createWindow() {
     if (input.control && input.key.toLowerCase() === "r") {
       browserWindow?.reload();
       event.preventDefault();
+    } else if (
+      input.control &&
+      input.shift &&
+      input.key.toLocaleLowerCase() === "i"
+    ) {
+      browserWindow?.webContents.openDevTools();
+      event.preventDefault();
     }
   });
 
@@ -69,10 +76,6 @@ function createWindow() {
   installExtension(REACT_DEVELOPER_TOOLS)
     .then((name) => console.log(`Added Extension:  ${name}`))
     .catch((err) => console.log("An error occurred: ", err));
-
-  if (isDev) {
-    browserWindow.webContents.openDevTools();
-  }
 }
 
 app.on("ready", createWindow);
