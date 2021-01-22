@@ -4,7 +4,7 @@ import { VirtualizedList } from "./VirtualizedList";
 
 import { useDropzone } from "react-dropzone";
 import fse from "fs-extra";
-import path, { relative } from "path";
+import path from "path";
 
 import File from "./File";
 import { useTypedSelector } from "../state/Store";
@@ -36,7 +36,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 
   paper: {
-    top: -10,
+    top: -25,
     position: "relative",
   },
 }));

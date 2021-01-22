@@ -234,8 +234,11 @@ export const reloadTemplates = () => async (
 ) => {
   const templatesParentDir = getState().settings.templatesPath;
 
-  if (!(await promisify(fs.lstat)(templatesParentDir)).isDirectory()) {
-    await promisify(fs.mkdir)(templatesParentDir);
+  if (
+    !(await fse.pathExists(templatesParentDir)) ||
+    !(await fse.lstat(templatesParentDir)).isDirectory()
+  ) {
+    await fse.ensureDir(path.join(templatesParentDir, "My First Folder"));
   }
 
   await dispatch(setupWatcher());

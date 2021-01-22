@@ -19,7 +19,6 @@ import {
 import {
   Alert,
   AlertTitle,
-  Skeleton,
   SpeedDial,
   SpeedDialAction,
 } from "@material-ui/lab";
@@ -163,7 +162,7 @@ export default function File(props: FileMenuProps) {
   return (
     <div className={styles.fileMenu}>
       <div className={styles.fileInfo}>
-        <Typography variant="body1" align="left">
+        <Typography variant="h6" align="left">
           {fileName}
         </Typography>
         <div className={styles.tags}>

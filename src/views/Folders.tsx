@@ -57,6 +57,10 @@ const StyledTreeItem = withStyles((theme: Theme) =>
     content: {
       textAlign: "left",
     },
+    label: {
+      fontWeight: 700,
+      fontSize: 18,
+    },
     root: {
       paddingLeft: 20,
     },
