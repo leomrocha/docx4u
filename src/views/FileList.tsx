@@ -25,6 +25,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     margin: 10,
     marginBottom: 30,
     borderRadius: 10,
+    padding: 20,
   },
 
   fileContainer: {

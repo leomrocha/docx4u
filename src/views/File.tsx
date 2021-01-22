@@ -27,13 +27,12 @@ import { useTypedSelector } from "../state/Store";
 import { Delete, Edit, FormatItalic, Menu } from "@material-ui/icons";
 
 const useStyles = makeStyles({
-  fileMenu: {
+  fileContainer: {
     display: "flex",
+    flexDirection: "column",
     margin: 3,
     padding: 3,
     alignItems: "flex-start",
-    // Place for SpeedDial
-    marginRight: 46,
   },
 
   buttons: {
@@ -50,8 +49,10 @@ const useStyles = makeStyles({
     margin: 3,
     flex: 3,
     display: "flex",
-    flexDirection: "column",
     alignSelf: "stretch",
+    // Place for SpeedDial
+    justifyContent: "space-between",
+    marginRight: 46,
   },
 
   tags: {
@@ -172,65 +173,65 @@ export default function File(props: FileMenuProps) {
   // TODO: fix layout when there are too many tags.
 
   return (
-    <div className={styles.fileMenu}>
+    <div className={styles.fileContainer}>
       <div className={styles.fileInfo}>
         <Typography variant="h6" align="left">
           {fileName}
         </Typography>
-        <div className={styles.tags}>
-          {fileData.isLoading ? (
-            <CircularProgress></CircularProgress>
-          ) : fileData.malformed ? (
-            <Alert severity="error">
-              Failed reading the file. Please, strip sensitive information and
-              submit the file to our team, so we can fix that. TODO: Add link
-            </Alert>
-          ) : fileData.tags.length === 0 ? (
-            <React.Fragment>
-              <Alert severity="warning">
-                <AlertTitle>No tags found!</AlertTitle>
-                Click edit and insert tags using this format:
-                <br></br>
-                <b> {`{%Tag Name%}`}</b>
-              </Alert>
-            </React.Fragment>
-          ) : (
-            fileData.tags.map((x) => (
-              <Chip color="default" size="small" key={x} label={x}></Chip>
-            ))
-          )}
+        <Backdrop className={styles.backdrop} open={buttonsVisible} />
+        <div className={styles.relative}>
+          <SpeedDial
+            classes={{ root: styles.speedDialRoot }}
+            icon={<Menu fontSize="small" />}
+            onClose={() => {
+              setButtonsVisible(false);
+            }}
+            onOpen={() => {
+              setButtonsVisible(true);
+            }}
+            open={buttonsVisible}
+            direction="down"
+            ariaLabel="file action"
+          >
+            {buttons.map((button) => (
+              <SpeedDialAction
+                key={button.name}
+                tooltipTitle={button.name}
+                tooltipOpen
+                color="secondary"
+                icon={button.icon}
+                onClick={() => {
+                  button.onClick();
+                  setButtonsVisible(false);
+                }}
+              />
+            ))}
+          </SpeedDial>
         </div>
       </div>
 
-      <Backdrop className={styles.backdrop} open={buttonsVisible} />
-      <div className={styles.relative}>
-        <SpeedDial
-          classes={{ root: styles.speedDialRoot }}
-          icon={<Menu fontSize="small" />}
-          onClose={() => {
-            setButtonsVisible(false);
-          }}
-          onOpen={() => {
-            setButtonsVisible(true);
-          }}
-          open={buttonsVisible}
-          direction="down"
-          ariaLabel="file action"
-        >
-          {buttons.map((button) => (
-            <SpeedDialAction
-              key={button.name}
-              tooltipTitle={button.name}
-              tooltipOpen
-              color="secondary"
-              icon={button.icon}
-              onClick={() => {
-                button.onClick();
-                setButtonsVisible(false);
-              }}
-            />
-          ))}
-        </SpeedDial>
+      <div className={styles.tags}>
+        {fileData.isLoading ? (
+          <CircularProgress></CircularProgress>
+        ) : fileData.malformed ? (
+          <Alert severity="error">
+            Failed reading the file. Please, strip sensitive information and
+            submit the file to our team, so we can fix that. TODO: Add link
+          </Alert>
+        ) : fileData.tags.length === 0 ? (
+          <React.Fragment>
+            <Alert severity="warning">
+              <AlertTitle>No tags found!</AlertTitle>
+              Click edit and insert tags using this format:
+              <br></br>
+              <b> {`{%Tag Name%}`}</b>
+            </Alert>
+          </React.Fragment>
+        ) : (
+          fileData.tags.map((x) => (
+            <Chip color="default" size="small" key={x} label={x}></Chip>
+          ))
+        )}
       </div>
 
       {/* <RenameDialog

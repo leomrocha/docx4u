@@ -30,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
   conatiner: {
     display: "flex",
     flexDirection: "column",
-    alignItems: "center",
+    alignItems: "flex-start",
     width: "100%",
     height: "100%",
   },
@@ -43,6 +43,7 @@ const useStyles = makeStyles((theme) => ({
 
   fileTreeScrallableContainer: {
     height: "100%",
+    width: "100%",
     overflowY: "scroll",
   },
 }));
@@ -151,7 +152,9 @@ export default function Folders() {
         existingItems={folders}
         open={dialogOpen !== false}
         initialName={
-          dialogOpen === "new" ? "My Template Name Here" : templates.activeFolder ?? ""
+          dialogOpen === "new"
+            ? "My Template Name Here"
+            : templates.activeFolder ?? ""
         }
         onRenamed={(newTeplateName) => {
           if (dialogOpen === "rename") {
