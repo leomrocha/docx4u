@@ -14,6 +14,7 @@ const useStyles = makeStyles((theme) => ({
 
   tagsForm: {
     flex: 3,
+    flexGrow: 4,
     height: "100%",
   },
   files: {
