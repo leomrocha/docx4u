@@ -1,4 +1,3 @@
-import { useActiveFolderPath, useActiveTemplate } from "../state/Templates";
 import AddTagsToDocx from "./AddTagsToDocx";
 import RenameDialog from "./RenameDialog";
 import { shell } from "electron";
@@ -8,7 +7,7 @@ import fse from "fs-extra";
 import path from "path";
 
 import {
-  Button,
+  Backdrop,
   Chip,
   Dialog,
   makeStyles,
@@ -16,9 +15,16 @@ import {
   Typography,
 } from "@material-ui/core";
 
-import { Alert, AlertTitle, Skeleton } from "@material-ui/lab";
+import {
+  Alert,
+  AlertTitle,
+  Skeleton,
+  SpeedDial,
+  SpeedDialAction,
+} from "@material-ui/lab";
 import React from "react";
 import { useTypedSelector } from "../state/Store";
+import { Delete, Edit, FormatItalic, Menu, Settings } from "@material-ui/icons";
 
 const useStyles = makeStyles({
   fileMenu: {
@@ -26,8 +32,7 @@ const useStyles = makeStyles({
     margin: 10,
     padding: 10,
     height: "100%",
-    alignItems: "center",
-    justifyContent: "space-around",
+    alignItems: "flex-start",
     borderRadius: 10,
   },
 
@@ -59,9 +64,29 @@ const useStyles = makeStyles({
     },
   },
 
+  relative: {
+    position: "relative",
+  },
+
+  speedDialRoot: {
+    position: "absolute",
+    left: "-30px",
+    zIndex: (props: { buttonsVisible: boolean }) => {
+      return props.buttonsVisible ? 3 : 1;
+    },
+    "& button": {
+      width: 36,
+      height: 36,
+    },
+  },
+
   skeleton: {
     height: 100,
     width: "100%",
+  },
+  backdrop: {
+    zIndex: 2,
+    color: "#fff",
   },
 });
 
@@ -78,7 +103,6 @@ const Transition = React.forwardRef(function Transition(
 });
 
 export default function File(props: FileMenuProps) {
-  const styles = useStyles();
   const [addTagsOpen, setAddTagsOpen] = React.useState(false);
   const [renameOpen, setRenameOpen] = React.useState(false);
   const confirm = useConfirm();
@@ -98,6 +122,42 @@ export default function File(props: FileMenuProps) {
 
   const fileData = docxFiles[fileName];
 
+  const [buttonsVisible, setButtonsVisible] = React.useState(false);
+
+  const styles = useStyles({ buttonsVisible });
+
+  const buttons = [
+    {
+      name: "Edit",
+      icon: <Edit />,
+      onClick: () => {
+        shell.openExternal(path.join(folderPath, fileName));
+      },
+    },
+    {
+      name: "Delete",
+      icon: <Delete />,
+      onClick: async () => {
+        try {
+          await confirm({
+            description:
+              "This will irreversably delete " + fileName + ". Continue?",
+            confirmationText: "Yes",
+            cancellationText: "No,",
+          });
+          fse.unlink(path.join(folderPath, fileName));
+        } catch {}
+      },
+    },
+    {
+      icon: <FormatItalic />,
+      name: "Rename",
+      onClick: () => {
+        setRenameOpen(true);
+      },
+    },
+  ];
+
   // TODO: fix layout when there are too many tags.
 
   return (
@@ -107,7 +167,9 @@ export default function File(props: FileMenuProps) {
       ) : (
         <React.Fragment>
           <div className={styles.fileInfo}>
-            <Typography color="primary">{fileName}</Typography>
+            <Typography variant="body1" align="left">
+              {fileName}
+            </Typography>
             <div className={styles.tags}>
               {fileData.malformed ? (
                 <Alert severity="error">
@@ -126,88 +188,72 @@ export default function File(props: FileMenuProps) {
                 </React.Fragment>
               ) : (
                 fileData.tags.map((x) => (
-                  <Chip key={x} label={x} color="primary"></Chip>
+                  <Chip size="small" key={x} label={x} color="primary"></Chip>
                 ))
               )}
             </div>
           </div>
 
-          <div className={styles.buttons}>
-            <Button
-              onClick={() => {
-                console.log(path.join(folderPath, fileName));
-
-                shell.openExternal(path.join(folderPath, fileName));
-              }}
-              variant="outlined"
-            >
-              Edit
-            </Button>
-            {/* 
-      <Button
-        onClick={() => {
-          setAddTagsOpen(true);
-        }}
-        variant="outlined"
-      >
-        Add Tags
-      </Button> */}
-            <Button
-              onClick={async () => {
-                try {
-                  await confirm({
-                    description:
-                      "This will irreversably delete " +
-                      fileName +
-                      ". Continue?",
-                    confirmationText: "Yes",
-                    cancellationText: "No,",
-                  });
-                  fse.unlink(path.join(folderPath, fileName));
-                } catch {}
-              }}
-              variant="outlined"
-            >
-              Delete
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => {
-                setRenameOpen(true);
-              }}
-            >
-              Rename
-            </Button>
-            <RenameDialog
-              open={renameOpen}
+          <Backdrop className={styles.backdrop} open={buttonsVisible} />
+          <div className={styles.relative}>
+            <SpeedDial
+              classes={{ root: styles.speedDialRoot }}
+              icon={<Menu fontSize="small" />}
               onClose={() => {
-                setRenameOpen(false);
+                setButtonsVisible(false);
               }}
-              initialName={path.basename(fileName, ".docx")}
-              confirmButtonText="Rename"
-              onRenamed={(newName) => {
-                fse.move(
-                  path.join(folderPath, fileName),
-                  path.join(folderPath, newName + ".docx")
-                );
-                setRenameOpen(false);
+              onOpen={() => {
+                setButtonsVisible(true);
               }}
-              existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
-            ></RenameDialog>
-            <Dialog
-              fullScreen
-              open={addTagsOpen}
-              onClose={() => {
-                setAddTagsOpen(false);
-              }}
-              TransitionComponent={Transition}
+              open={buttonsVisible}
+              direction="down"
+              ariaLabel="file action"
             >
-              <AddTagsToDocx
-                fullPath={path.join(folderPath, fileName)}
-                base64Content={fileData.contentBase64 ?? ""}
-              ></AddTagsToDocx>
-            </Dialog>
+              {buttons.map((button) => (
+                <SpeedDialAction
+                  key={button.name}
+                  tooltipTitle={button.name}
+                  tooltipOpen
+                  color="secondary"
+                  icon={button.icon}
+                  onClick={() => {
+                    button.onClick();
+                    setButtonsVisible(false);
+                  }}
+                />
+              ))}
+            </SpeedDial>
           </div>
+
+          <RenameDialog
+            open={renameOpen}
+            onClose={() => {
+              setRenameOpen(false);
+            }}
+            initialName={path.basename(fileName, ".docx")}
+            confirmButtonText="Rename"
+            onRenamed={(newName) => {
+              fse.move(
+                path.join(folderPath, fileName),
+                path.join(folderPath, newName + ".docx")
+              );
+              setRenameOpen(false);
+            }}
+            existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
+          ></RenameDialog>
+          <Dialog
+            fullScreen
+            open={addTagsOpen}
+            onClose={() => {
+              setAddTagsOpen(false);
+            }}
+            TransitionComponent={Transition}
+          >
+            <AddTagsToDocx
+              fullPath={path.join(folderPath, fileName)}
+              base64Content={fileData.contentBase64 ?? ""}
+            ></AddTagsToDocx>
+          </Dialog>
         </React.Fragment>
       )}
     </div>

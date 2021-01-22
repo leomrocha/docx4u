@@ -1,4 +1,4 @@
-import { makeStyles, Paper } from "@material-ui/core";
+import { makeStyles, Paper, Theme } from "@material-ui/core";
 import React from "react";
 import { VirtualizedList } from "./VirtualizedList";
 
@@ -6,11 +6,10 @@ import { useDropzone } from "react-dropzone";
 import fse from "fs-extra";
 import path from "path";
 
-import { useActiveFolderPath, useActiveTemplate } from "../state/Templates";
 import File from "./File";
 import { useTypedSelector } from "../state/Store";
 
-const useStyles = makeStyles({
+const useStyles = makeStyles((theme: Theme) => ({
   conatiner: {
     height: "100%",
     width: "100%",
@@ -21,13 +20,14 @@ const useStyles = makeStyles({
     alignItems: "center",
     justifyContent: "center",
     height: "100px",
-    border: "solid 2px lightgray",
+    border: "solid 2px",
+    borderColor: theme.palette.secondary.main,
     margin: 10,
     borderRadius: 10,
   },
 
   paper: { margin: 10 },
-});
+}));
 
 interface EntryProps {
   key: string;
