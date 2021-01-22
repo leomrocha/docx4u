@@ -52,7 +52,7 @@ function Placeholder(props: { height: number }) {
   return <div style={{ height: props.height }}> </div>;
 }
 
-export default function EditTemplate() {
+export default function Files() {
   const activeFolderPath = useActiveFolderPath();
   const docxFiles = useActiveTemplate()?.docxFiles;
 

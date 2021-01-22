@@ -29,7 +29,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function TemplatesSelectionPanel() {
+export default function Folders() {
   const styles = useStyles();
 
   const confirm = useConfirm();
@@ -54,7 +54,7 @@ export default function TemplatesSelectionPanel() {
 
   return (
     <div className={styles.conatiner}>
-      <Typography variant="h6">Templates</Typography>
+      <Typography variant="h6">Folders</Typography>
       <div className={styles.buttons}>
         <Button
           color={templates.activeFolder === undefined ? "secondary" : "default"}

@@ -1,10 +1,9 @@
 import React from "react";
 
-import TemplatesSelectionPanel from "./TemplatesSelectionPanel";
+import Folders from "./Folders";
 import { makeStyles } from "@material-ui/core/styles";
-import { AppBar, Tab, Tabs } from "@material-ui/core";
 import TagsForm from "./TagsForm";
-import EditTemplate from "./EditTemplate";
+import Files from "./Files";
 
 const useStyles = makeStyles((theme) => ({
   conatiner: {
@@ -31,6 +30,7 @@ const useStyles = makeStyles((theme) => ({
   tabs: {
     alignSelf: "flex-end",
   },
+  files: {},
 }));
 
 enum SelectedTab {
@@ -40,36 +40,12 @@ enum SelectedTab {
 export default function Main() {
   const styles = useStyles();
 
-  const [selectedTab, setSelectedTab] = React.useState<SelectedTab>(
-    SelectedTab.EditTemplate
-  );
-
   return (
     <div className={styles.conatiner}>
-      <AppBar position="static">
-        <Tabs
-          selectionFollowsFocus
-          className={styles.tabs}
-          value={selectedTab}
-          onChange={(e, value) => {
-            setSelectedTab(value);
-          }}
-          aria-label="simple tabs example"
-        >
-          <Tab label="Edit Template" />
-          <Tab label="Generate Documents" />
-        </Tabs>
-      </AppBar>
       <div className={styles.content}>
-        <TemplatesSelectionPanel></TemplatesSelectionPanel>
-
-        <div className={styles.activeTemplate}>
-          {selectedTab === SelectedTab.EditTemplate ? (
-            <EditTemplate />
-          ) : (
-            <TagsForm />
-          )}
-        </div>
+        <Folders></Folders>
+        <Files />
+        <TagsForm />
       </div>
     </div>
   );
