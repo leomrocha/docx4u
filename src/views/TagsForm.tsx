@@ -87,7 +87,7 @@ export default function TagsForm() {
         ></TextField>
       ))}
       <Button
-        variant="outlined"
+        variant="contained"
         color="primary"
         onClick={async () => {
           setSaving(true);

@@ -1,10 +1,10 @@
-import { makeStyles, Paper, Theme } from "@material-ui/core";
+import { fade, makeStyles, Paper, Theme } from "@material-ui/core";
 import React from "react";
 import { VirtualizedList } from "./VirtualizedList";
 
 import { useDropzone } from "react-dropzone";
 import fse from "fs-extra";
-import path from "path";
+import path, { relative } from "path";
 
 import File from "./File";
 import { useTypedSelector } from "../state/Store";
@@ -23,10 +23,22 @@ const useStyles = makeStyles((theme: Theme) => ({
     border: "solid 2px",
     borderColor: theme.palette.secondary.main,
     margin: 10,
+    marginBottom: 30,
     borderRadius: 10,
   },
 
-  paper: { margin: 10 },
+  fileContainer: {
+    marginLeft: 0,
+    paddingLeft: 10,
+    marginBottom: 20,
+    marginRight: 10,
+    borderTop: `2px solid ${fade(theme.palette.text.primary, 0.4)}`,
+  },
+
+  paper: {
+    top: -10,
+    position: "relative",
+  },
 }));
 
 interface EntryProps {
@@ -39,8 +51,8 @@ export const Entry = React.forwardRef<HTMLTableRowElement, EntryProps>(
   (props, ref) => {
     const styles = useStyles();
     return (
-      <div ref={ref} className={styles.paper}>
-        <Paper>
+      <div ref={ref} className={styles.fileContainer}>
+        <Paper elevation={4} classes={{ root: styles.paper }}>
           <File fileName={props.fileName} folder={props.folderName}></File>
         </Paper>
       </div>

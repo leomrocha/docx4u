@@ -9,6 +9,7 @@ import path from "path";
 import {
   Backdrop,
   Chip,
+  CircularProgress,
   Dialog,
   makeStyles,
   Slide,
@@ -24,16 +25,16 @@ import {
 } from "@material-ui/lab";
 import React from "react";
 import { useTypedSelector } from "../state/Store";
-import { Delete, Edit, FormatItalic, Menu, Settings } from "@material-ui/icons";
+import { Delete, Edit, FormatItalic, Menu } from "@material-ui/icons";
 
 const useStyles = makeStyles({
   fileMenu: {
     display: "flex",
-    margin: 10,
-    padding: 10,
-    height: "100%",
+    margin: 3,
+    padding: 3,
     alignItems: "flex-start",
-    borderRadius: 10,
+    // Place for SpeedDial
+    marginRight: 46,
   },
 
   buttons: {
@@ -70,7 +71,6 @@ const useStyles = makeStyles({
 
   speedDialRoot: {
     position: "absolute",
-    left: "-30px",
     zIndex: (props: { buttonsVisible: boolean }) => {
       return props.buttonsVisible ? 3 : 1;
     },
@@ -162,100 +162,95 @@ export default function File(props: FileMenuProps) {
 
   return (
     <div className={styles.fileMenu}>
-      {fileData.isLoading ? (
-        <Skeleton variant="rect" className={styles.skeleton}></Skeleton>
-      ) : (
-        <React.Fragment>
-          <div className={styles.fileInfo}>
-            <Typography variant="body1" align="left">
-              {fileName}
-            </Typography>
-            <div className={styles.tags}>
-              {fileData.malformed ? (
-                <Alert severity="error">
-                  Failed reading the file. Please, strip sensitive information
-                  and submit the file to our team, so we can fix that. TODO: Add
-                  link
-                </Alert>
-              ) : fileData.tags.length === 0 ? (
-                <React.Fragment>
-                  <Alert severity="warning">
-                    <AlertTitle>No tags found!</AlertTitle>
-                    Click edit and insert tags using this format:
-                    <br></br>
-                    <b> {`{%Tag Name%}`}</b>
-                  </Alert>
-                </React.Fragment>
-              ) : (
-                fileData.tags.map((x) => (
-                  <Chip size="small" key={x} label={x} color="primary"></Chip>
-                ))
-              )}
-            </div>
-          </div>
+      <div className={styles.fileInfo}>
+        <Typography variant="body1" align="left">
+          {fileName}
+        </Typography>
+        <div className={styles.tags}>
+          {fileData.isLoading ? (
+            <CircularProgress></CircularProgress>
+          ) : fileData.malformed ? (
+            <Alert severity="error">
+              Failed reading the file. Please, strip sensitive information and
+              submit the file to our team, so we can fix that. TODO: Add link
+            </Alert>
+          ) : fileData.tags.length === 0 ? (
+            <React.Fragment>
+              <Alert severity="warning">
+                <AlertTitle>No tags found!</AlertTitle>
+                Click edit and insert tags using this format:
+                <br></br>
+                <b> {`{%Tag Name%}`}</b>
+              </Alert>
+            </React.Fragment>
+          ) : (
+            fileData.tags.map((x) => (
+              <Chip color="default" size="small" key={x} label={x}></Chip>
+            ))
+          )}
+        </div>
+      </div>
 
-          <Backdrop className={styles.backdrop} open={buttonsVisible} />
-          <div className={styles.relative}>
-            <SpeedDial
-              classes={{ root: styles.speedDialRoot }}
-              icon={<Menu fontSize="small" />}
-              onClose={() => {
+      <Backdrop className={styles.backdrop} open={buttonsVisible} />
+      <div className={styles.relative}>
+        <SpeedDial
+          classes={{ root: styles.speedDialRoot }}
+          icon={<Menu fontSize="small" />}
+          onClose={() => {
+            setButtonsVisible(false);
+          }}
+          onOpen={() => {
+            setButtonsVisible(true);
+          }}
+          open={buttonsVisible}
+          direction="down"
+          ariaLabel="file action"
+        >
+          {buttons.map((button) => (
+            <SpeedDialAction
+              key={button.name}
+              tooltipTitle={button.name}
+              tooltipOpen
+              color="secondary"
+              icon={button.icon}
+              onClick={() => {
+                button.onClick();
                 setButtonsVisible(false);
               }}
-              onOpen={() => {
-                setButtonsVisible(true);
-              }}
-              open={buttonsVisible}
-              direction="down"
-              ariaLabel="file action"
-            >
-              {buttons.map((button) => (
-                <SpeedDialAction
-                  key={button.name}
-                  tooltipTitle={button.name}
-                  tooltipOpen
-                  color="secondary"
-                  icon={button.icon}
-                  onClick={() => {
-                    button.onClick();
-                    setButtonsVisible(false);
-                  }}
-                />
-              ))}
-            </SpeedDial>
-          </div>
+            />
+          ))}
+        </SpeedDial>
+      </div>
 
-          <RenameDialog
-            open={renameOpen}
-            onClose={() => {
-              setRenameOpen(false);
-            }}
-            initialName={path.basename(fileName, ".docx")}
-            confirmButtonText="Rename"
-            onRenamed={(newName) => {
-              fse.move(
-                path.join(folderPath, fileName),
-                path.join(folderPath, newName + ".docx")
-              );
-              setRenameOpen(false);
-            }}
-            existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
-          ></RenameDialog>
-          <Dialog
-            fullScreen
-            open={addTagsOpen}
-            onClose={() => {
-              setAddTagsOpen(false);
-            }}
-            TransitionComponent={Transition}
-          >
-            <AddTagsToDocx
-              fullPath={path.join(folderPath, fileName)}
-              base64Content={fileData.contentBase64 ?? ""}
-            ></AddTagsToDocx>
-          </Dialog>
-        </React.Fragment>
-      )}
+      <RenameDialog
+        open={renameOpen}
+        onClose={() => {
+          setRenameOpen(false);
+        }}
+        initialName={path.basename(fileName, ".docx")}
+        confirmButtonText="Rename"
+        onRenamed={(newName) => {
+          fse.move(
+            path.join(folderPath, fileName),
+            path.join(folderPath, newName + ".docx")
+          );
+          setRenameOpen(false);
+        }}
+        existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
+      ></RenameDialog>
+      <Dialog
+        fullScreen
+        open={addTagsOpen}
+        onClose={() => {
+          setAddTagsOpen(false);
+        }}
+        TransitionComponent={Transition}
+      >
+        <AddTagsToDocx
+          fullPath={path.join(folderPath, fileName)}
+          base64Content={fileData.contentBase64 ?? ""}
+        ></AddTagsToDocx>
+      </Dialog>
     </div>
   );
 }

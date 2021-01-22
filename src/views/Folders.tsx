@@ -63,8 +63,8 @@ const StyledTreeItem = withStyles((theme: Theme) =>
 
     group: {
       marginLeft: 7,
-      paddingLeft: 5,
-      borderLeft: `1px dashed ${fade(theme.palette.text.primary, 0.4)}`,
+      paddingLeft: 0,
+      borderLeft: `2px dashed ${fade(theme.palette.text.primary, 0.4)}`,
     },
   })
 )((props: TreeItemProps) => <TreeItem {...props} />);
