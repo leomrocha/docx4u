@@ -18,6 +18,7 @@ import {
 
 import { Alert, AlertTitle, Skeleton } from "@material-ui/lab";
 import React from "react";
+import { useTypedSelector } from "../state/Store";
 
 const useStyles = makeStyles({
   fileMenu: {
@@ -66,6 +67,7 @@ const useStyles = makeStyles({
 
 interface FileMenuProps {
   fileName: string;
+  folder: string;
 }
 
 const Transition = React.forwardRef(function Transition(
@@ -75,14 +77,21 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function FileMenu(props: FileMenuProps) {
+export default function File(props: FileMenuProps) {
   const styles = useStyles();
-  const activeFolderPath = useActiveFolderPath();
   const [addTagsOpen, setAddTagsOpen] = React.useState(false);
   const [renameOpen, setRenameOpen] = React.useState(false);
   const confirm = useConfirm();
 
-  const docxFiles = useActiveTemplate().docxFiles;
+  const docxFiles = useTypedSelector(
+    (state) => state.templates.subfolders[props.folder].docxFiles
+  );
+
+  const folderPath = path.join(
+    useTypedSelector((state) => state.settings.templatesPath),
+    props.folder
+  );
+
   const fileNames = Object.keys(docxFiles);
 
   const fileName = props.fileName;
@@ -126,9 +135,9 @@ export default function FileMenu(props: FileMenuProps) {
           <div className={styles.buttons}>
             <Button
               onClick={() => {
-                console.log(path.join(activeFolderPath, fileName));
+                console.log(path.join(folderPath, fileName));
 
-                shell.openExternal(path.join(activeFolderPath, fileName));
+                shell.openExternal(path.join(folderPath, fileName));
               }}
               variant="outlined"
             >
@@ -154,7 +163,7 @@ export default function FileMenu(props: FileMenuProps) {
                     confirmationText: "Yes",
                     cancellationText: "No,",
                   });
-                  fse.unlink(path.join(activeFolderPath, fileName));
+                  fse.unlink(path.join(folderPath, fileName));
                 } catch {}
               }}
               variant="outlined"
@@ -178,8 +187,8 @@ export default function FileMenu(props: FileMenuProps) {
               confirmButtonText="Rename"
               onRenamed={(newName) => {
                 fse.move(
-                  path.join(activeFolderPath, fileName),
-                  path.join(activeFolderPath, newName + ".docx")
+                  path.join(folderPath, fileName),
+                  path.join(folderPath, newName + ".docx")
                 );
                 setRenameOpen(false);
               }}
@@ -194,7 +203,7 @@ export default function FileMenu(props: FileMenuProps) {
               TransitionComponent={Transition}
             >
               <AddTagsToDocx
-                fullPath={path.join(activeFolderPath, fileName)}
+                fullPath={path.join(folderPath, fileName)}
                 base64Content={fileData.contentBase64 ?? ""}
               ></AddTagsToDocx>
             </Dialog>

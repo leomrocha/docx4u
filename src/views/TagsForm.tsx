@@ -28,6 +28,7 @@ const useStyles = makeStyles((theme) => ({
   textField: {
     width: "95%",
     margin: "auto",
+    marginTop: 10,
     marginBottom: 10,
   },
 
@@ -95,7 +96,7 @@ export default function TagsForm() {
         }}
         className={styles.button}
       >
-        Save Results
+        Generate
       </Button>
       <Backdrop className={styles.backdrop} open={saving}>
         <CircularProgress color="inherit" />

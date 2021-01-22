@@ -1,4 +1,15 @@
-import { Tabs, Tab, Button, makeStyles, Typography } from "@material-ui/core";
+import {
+  Button,
+  createStyles,
+  fade,
+  makeStyles,
+  Theme,
+  Typography,
+  withStyles,
+} from "@material-ui/core";
+
+import FolderIcon from "@material-ui/icons/Folder";
+import FolderOpenIcon from "@material-ui/icons/FolderOpen";
 
 import { useConfirm } from "material-ui-confirm";
 
@@ -11,12 +22,17 @@ import React from "react";
 
 import fse from "fs-extra";
 import RenameDialog from "./RenameDialog";
+import { TreeItem, TreeItemProps, TreeView } from "@material-ui/lab";
+
+import FileList from "./FileList";
 
 const useStyles = makeStyles((theme) => ({
   conatiner: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    width: "100%",
+    height: "100%",
   },
   buttons: {
     display: "flex",
@@ -24,10 +40,34 @@ const useStyles = makeStyles((theme) => ({
       margin: 3,
     },
   },
-  tabs: {
-    alignSelf: "flex-end",
+
+  fileTreeScrallableContainer: {
+    height: "100%",
+    overflowY: "scroll",
   },
 }));
+
+const StyledTreeItem = withStyles((theme: Theme) =>
+  createStyles({
+    iconContainer: {
+      "& .close": {
+        opacity: 0.3,
+      },
+    },
+    content: {
+      textAlign: "left",
+    },
+    root: {
+      paddingLeft: 20,
+    },
+
+    group: {
+      marginLeft: 7,
+      paddingLeft: 5,
+      borderLeft: `1px dashed ${fade(theme.palette.text.primary, 0.4)}`,
+    },
+  })
+)((props: TreeItemProps) => <TreeItem {...props} />);
 
 export default function Folders() {
   const styles = useStyles();
@@ -46,11 +86,10 @@ export default function Folders() {
 
   const dispatch: AppDispatch = useDispatch();
 
+  const scrollableContainerRef = React.useRef(null);
+
   if (!templates) return null;
-  const templateFolders = Object.keys(templates.subfolders);
-  const activeTemplateIndex = templateFolders.indexOf(
-    templates.activeFolder ?? ""
-  );
+  const folders = Object.keys(templates.subfolders);
 
   return (
     <div className={styles.conatiner}>
@@ -105,10 +144,10 @@ export default function Folders() {
       </div>
 
       <RenameDialog
-        existingItems={templateFolders}
+        existingItems={folders}
         open={dialogOpen !== false}
         initialName={
-          dialogOpen === "new" ? "My Template" : templates.activeFolder ?? ""
+          dialogOpen === "new" ? "My Folder" : templates.activeFolder ?? ""
         }
         onRenamed={(newTeplateName) => {
           if (dialogOpen === "rename") {
@@ -128,22 +167,35 @@ export default function Folders() {
           setDialogOpen(false);
         }}
       ></RenameDialog>
-      <Tabs
-        className={styles.tabs}
-        orientation="vertical"
-        variant="scrollable"
-        value={activeTemplateIndex}
-        onChange={(event: React.ChangeEvent<{}>, newValue: number) => {
-          dispatch(
-            setActiveSubfolder({ folderName: templateFolders[newValue] })
-          );
-        }}
-        aria-label="Active Template Selector"
+
+      <div
+        ref={scrollableContainerRef}
+        className={styles.fileTreeScrallableContainer}
       >
-        {templateFolders.map((template) => (
-          <Tab key={template} label={path.basename(template)}></Tab>
-        ))}
-      </Tabs>
+        <TreeView expanded={[templates.activeFolder ?? ""]}>
+          {folders.map((folder) => (
+            <StyledTreeItem
+              icon={
+                folder === templates.activeFolder ? (
+                  <FolderOpenIcon></FolderOpenIcon>
+                ) : (
+                  <FolderIcon></FolderIcon>
+                )
+              }
+              nodeId={folder}
+              label={folder}
+              onClick={() => {
+                dispatch(setActiveSubfolder({ folderName: folder }));
+              }}
+            >
+              <FileList
+                scrollableContainerRef={scrollableContainerRef}
+                folderName={folder}
+              ></FileList>
+            </StyledTreeItem>
+          ))}
+        </TreeView>
+      </div>
     </div>
   );
 }

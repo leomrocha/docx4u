@@ -7,14 +7,13 @@ import fse from "fs-extra";
 import path from "path";
 
 import { useActiveFolderPath, useActiveTemplate } from "../state/Templates";
-import FileMenu from "./FileMenu";
+import File from "./File";
+import { useTypedSelector } from "../state/Store";
 
 const useStyles = makeStyles({
   conatiner: {
     height: "100%",
     width: "100%",
-    overflowY: "scroll",
-    willChange: "transform",
   },
   dropZone: {
     display: "flex",
@@ -33,6 +32,7 @@ const useStyles = makeStyles({
 interface EntryProps {
   key: string;
   fileName: string;
+  folderName: string;
 }
 
 export const Entry = React.forwardRef<HTMLTableRowElement, EntryProps>(
@@ -41,7 +41,7 @@ export const Entry = React.forwardRef<HTMLTableRowElement, EntryProps>(
     return (
       <div ref={ref} className={styles.paper}>
         <Paper>
-          <FileMenu fileName={props.fileName}></FileMenu>
+          <File fileName={props.fileName} folder={props.folderName}></File>
         </Paper>
       </div>
     );
@@ -52,15 +52,22 @@ function Placeholder(props: { height: number }) {
   return <div style={{ height: props.height }}> </div>;
 }
 
-export default function Files() {
-  const activeFolderPath = useActiveFolderPath();
-  const docxFiles = useActiveTemplate()?.docxFiles;
+interface FileListProps {
+  scrollableContainerRef: React.MutableRefObject<null>;
+  folderName: string;
+}
+
+export default function FileList(props: FileListProps) {
+  const templates = useTypedSelector((state) => state.templates);
+  const parentFolder = useTypedSelector(
+    (state) => state.settings.templatesPath
+  );
+
+  const docxFiles = templates.subfolders[props.folderName]?.docxFiles;
 
   const [dropZoneError, setDropZoneError] = React.useState("");
 
   const styles = useStyles();
-
-  const scrollableContainerRef = React.useRef(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: async (files) => {
@@ -92,7 +99,10 @@ export default function Files() {
       });
 
       pathsToCopy.forEach((srcFullPath, dstName) => {
-        fse.copyFile(srcFullPath, path.join(activeFolderPath, dstName));
+        fse.copyFile(
+          srcFullPath,
+          path.join(parentFolder, props.folderName, dstName)
+        );
       });
     },
   });
@@ -100,7 +110,7 @@ export default function Files() {
   if (!docxFiles) return null;
 
   return (
-    <div className={styles.conatiner} ref={scrollableContainerRef}>
+    <div className={styles.conatiner}>
       <div className={styles.dropZone} {...getRootProps()}>
         <input {...getInputProps()} />
         {dropZoneError ? (
@@ -116,10 +126,11 @@ export default function Files() {
         entries={Object.keys(docxFiles).map((x) => ({
           key: x,
           fileName: x,
+          folderName: props.folderName,
         }))}
         ItemComponent={Entry}
         PlaceholderComponent={Placeholder}
-        scrollableContainerRef={scrollableContainerRef}
+        scrollableContainerRef={props.scrollableContainerRef}
         defaultHeight={80}
       />
     </div>
