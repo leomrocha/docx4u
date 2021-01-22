@@ -140,7 +140,7 @@ export default function File(props: FileMenuProps) {
         try {
           await confirm({
             description:
-              "This will irreversably delete " + fileName + ". Continue?",
+              "This will dismiss " + fileName + " from the Template. Continue?",
             confirmationText: "Yes",
             cancellationText: "No,",
           });

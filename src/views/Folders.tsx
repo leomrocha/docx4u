@@ -97,7 +97,7 @@ export default function Folders() {
 
   return (
     <div className={styles.conatiner}>
-      <Typography variant="h6">Folders</Typography>
+      <Typography variant="h6">Templates</Typography>
       <div className={styles.buttons}>
         <Button
           color={templates.activeFolder === undefined ? "secondary" : "default"}
@@ -151,7 +151,7 @@ export default function Folders() {
         existingItems={folders}
         open={dialogOpen !== false}
         initialName={
-          dialogOpen === "new" ? "My Folder" : templates.activeFolder ?? ""
+          dialogOpen === "new" ? "My Template Name Here" : templates.activeFolder ?? ""
         }
         onRenamed={(newTeplateName) => {
           if (dialogOpen === "rename") {
