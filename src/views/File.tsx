@@ -103,13 +103,21 @@ const Transition = React.forwardRef(function Transition(
 
 export default function File(props: FileMenuProps) {
   const [addTagsOpen, setAddTagsOpen] = React.useState(false);
-  const [renameOpen, setRenameOpen] = React.useState(false);
+  // const [renameOpen, setRenameOpen] = React.useState(false);
   const confirm = useConfirm();
+
+  // So the path is already set for the templates path
+  console.log("Props: " + JSON.stringify(props, null, 2))
 
   const docxFiles = useTypedSelector(
     (state) => state.templates.subfolders[props.folder].docxFiles
   );
 
+  // FIXME
+  // Here there is a bug, it sets the template path as the file path
+  // but the original template file is not in that path, so the Edit fails when clicking it
+  // it should use the original directory and original file to avoid any issue
+  // (for example, the user modifies the original template but this does not get propagated to the copies)
   const folderPath = path.join(
     useTypedSelector((state) => state.settings.templatesPath),
     props.folder
@@ -130,7 +138,10 @@ export default function File(props: FileMenuProps) {
       name: "Edit",
       icon: <Edit />,
       onClick: () => {
-        shell.openExternal(path.join(folderPath, fileName));
+        // separating file name creation to be able to log it
+        const fname = path.join(folderPath, fileName);
+        console.debug("Trying to open file: "+ fname)
+        shell.openExternal(fname);
       },
     },
     {
@@ -148,13 +159,14 @@ export default function File(props: FileMenuProps) {
         } catch {}
       },
     },
-    {
-      icon: <FormatItalic />,
-      name: "Rename",
-      onClick: () => {
-        setRenameOpen(true);
-      },
-    },
+    // Rename is not needed 
+    // {
+    //   icon: <FormatItalic />,
+    //   name: "Rename",
+    //   onClick: () => {
+    //     setRenameOpen(true);
+    //   },
+    // },
   ];
 
   // TODO: fix layout when there are too many tags.
@@ -221,7 +233,7 @@ export default function File(props: FileMenuProps) {
         </SpeedDial>
       </div>
 
-      <RenameDialog
+      {/* <RenameDialog
         open={renameOpen}
         onClose={() => {
           setRenameOpen(false);
@@ -236,7 +248,7 @@ export default function File(props: FileMenuProps) {
           setRenameOpen(false);
         }}
         existingItems={fileNames.map((x) => path.basename(x, ".docx"))}
-      ></RenameDialog>
+      ></RenameDialog> */}
       <Dialog
         fullScreen
         open={addTagsOpen}

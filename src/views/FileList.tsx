@@ -109,7 +109,13 @@ export default function FileList(props: FileListProps) {
         }
         pathsToCopy.set(destName, file.path);
       });
-
+      // Files should not be copied, only the original used and never modified
+      // having a copy will confuse users as if (when) they modify their template the copy will not be 
+      // modified, and if so, there is the need to do more code to handle that.
+      // Also if a copy exists it might be erased by the user (the user didn't create it, might think it's OK to erase it)
+      // also this does not seem to be working in linux
+      // a simpler approach is only create a file that contains the database with the details of where the templates exist
+      // and the last state of the application (like it's done now)
       pathsToCopy.forEach((srcFullPath, dstName) => {
         fse.copyFile(
           srcFullPath,
