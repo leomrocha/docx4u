@@ -3,7 +3,7 @@ import React from "react";
 import TemplatesSelectionPanel from "./TemplatesSelectionPanel";
 import { makeStyles } from "@material-ui/core/styles";
 import { AppBar, Tab, Tabs } from "@material-ui/core";
-import GenerateDocuments from "./GenerateDocuments";
+import TagsForm from "./TagsForm";
 import EditTemplate from "./EditTemplate";
 
 const useStyles = makeStyles((theme) => ({
@@ -67,7 +67,7 @@ export default function Main() {
           {selectedTab === SelectedTab.EditTemplate ? (
             <EditTemplate />
           ) : (
-            <GenerateDocuments />
+            <TagsForm />
           )}
         </div>
       </div>

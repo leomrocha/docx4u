@@ -1,4 +1,11 @@
-import { Button, makeStyles, TextField, Typography } from "@material-ui/core";
+import {
+  Backdrop,
+  Button,
+  CircularProgress,
+  makeStyles,
+  TextField,
+  Typography,
+} from "@material-ui/core";
 import React from "react";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useTypedSelector } from "../state/Store";
@@ -29,14 +36,21 @@ const useStyles = makeStyles((theme) => ({
     margin: "auto",
     marginBottom: 30,
   },
+
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: "#fff",
+  },
 }));
 
-export default function GenerateDocuments() {
+export default function TagsForm() {
   const styles = useStyles();
 
   const dispatch: AppDispatch = useDispatch();
   const activeTemplate = useActiveTemplate();
   const activeTemplateName = path.basename(useActiveFolderPath());
+
+  const [saving, setSaving] = React.useState(false);
 
   const activeFolderName = useTypedSelector(
     (state) => state.templates.activeFolder
@@ -74,13 +88,18 @@ export default function GenerateDocuments() {
       <Button
         variant="outlined"
         color="primary"
-        onClick={() => {
-          generateZip(activeTemplate, activeFolderName);
+        onClick={async () => {
+          setSaving(true);
+          await generateZip(activeTemplate, activeFolderName);
+          setSaving(false);
         }}
         className={styles.button}
       >
         Save Results
       </Button>
+      <Backdrop className={styles.backdrop} open={saving}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </div>
   );
 }
