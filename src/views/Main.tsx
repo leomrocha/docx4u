@@ -13,12 +13,11 @@ const useStyles = makeStyles((theme) => ({
   },
 
   tagsForm: {
-    flex: 3,
-    flexGrow: 4,
+    flex: "3 1 330px",
     height: "100%",
   },
   files: {
-    flex: 2,
+    flex: "1 0 330px",
     height: "100%",
   },
 }));
