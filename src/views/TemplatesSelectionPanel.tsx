@@ -35,13 +35,9 @@ export default function TemplatesSelectionPanel() {
   const confirm = useConfirm();
 
   const templates = useTypedSelector((state) => state.templates);
+
   const parentDirectory = useTypedSelector(
     (state) => state.settings.templatesPath
-  );
-
-  const templateFolders = Object.keys(templates.subfolders);
-  const activeTemplateIndex = templateFolders.indexOf(
-    templates.activeTemplatesFolder ?? ""
   );
 
   const [dialogOpen, setDialogOpen] = React.useState<"new" | "rename" | false>(
@@ -50,20 +46,20 @@ export default function TemplatesSelectionPanel() {
 
   const dispatch: AppDispatch = useDispatch();
 
+  if (!templates) return null;
+  const templateFolders = Object.keys(templates.subfolders);
+  const activeTemplateIndex = templateFolders.indexOf(
+    templates.activeFolder ?? ""
+  );
+
   return (
     <div className={styles.conatiner}>
       <Typography variant="h6">Templates</Typography>
       <div className={styles.buttons}>
         <Button
-          color={
-            templates.activeTemplatesFolder === undefined
-              ? "secondary"
-              : "default"
-          }
+          color={templates.activeFolder === undefined ? "secondary" : "default"}
           variant={
-            templates.activeTemplatesFolder === undefined
-              ? "contained"
-              : "outlined"
+            templates.activeFolder === undefined ? "contained" : "outlined"
           }
           size="small"
           onClick={() => {
@@ -75,7 +71,7 @@ export default function TemplatesSelectionPanel() {
         <Button
           size="small"
           variant="outlined"
-          disabled={templates.activeTemplatesFolder === undefined}
+          disabled={templates.activeFolder === undefined}
           onClick={() => {
             setDialogOpen("rename");
           }}
@@ -85,19 +81,19 @@ export default function TemplatesSelectionPanel() {
         <Button
           size="small"
           variant="outlined"
-          disabled={templates.activeTemplatesFolder === undefined}
+          disabled={templates.activeFolder === undefined}
           onClick={async () => {
             try {
-              if (!templates.activeTemplatesFolder) return;
+              if (!templates.activeFolder) return;
               await confirm({
                 description: `This will irreversibly delete "${path.basename(
-                  templates.activeTemplatesFolder.toUpperCase()
+                  templates.activeFolder.toUpperCase()
                 )}". Sure?`,
               });
 
-              if (!templates.activeTemplatesFolder) return;
+              if (!templates.activeFolder) return;
               await fse.remove(
-                path.join(parentDirectory, templates.activeTemplatesFolder)
+                path.join(parentDirectory, templates.activeFolder)
               );
             } catch (e) {
               console.error(e);
@@ -112,15 +108,13 @@ export default function TemplatesSelectionPanel() {
         existingItems={templateFolders}
         open={dialogOpen !== false}
         initialName={
-          dialogOpen === "new"
-            ? "My Template"
-            : templates.activeTemplatesFolder ?? ""
+          dialogOpen === "new" ? "My Template" : templates.activeFolder ?? ""
         }
         onRenamed={(newTeplateName) => {
           if (dialogOpen === "rename") {
-            if (!templates.activeTemplatesFolder) return;
+            if (!templates.activeFolder) return;
             fse.move(
-              path.join(parentDirectory, templates.activeTemplatesFolder),
+              path.join(parentDirectory, templates.activeFolder),
               path.join(parentDirectory, newTeplateName)
             );
           } else if (dialogOpen === "new") {

@@ -16,7 +16,7 @@ import { dialog, BrowserWindow } from "electron";
 // 5) The Renderer Process is the King. The Main Process is just a mere servant.
 // 6) @wexond/rpc-electron doesn't support callbacks :(
 interface MainProcessService {
-  pickFile(): Promise<string[] | undefined>;
+  showSaveDialog(defaultPath: string): Promise<string | undefined>;
 }
 
 const channel = new RendererToMainChannel<MainProcessService>(
@@ -27,18 +27,17 @@ export const mainProcessService = () => channel.getInvoker();
 
 export async function registerFileService(browserWindow: BrowserWindow) {
   class MainProcessServiceImpl implements RpcMainHandler<MainProcessService> {
-    async pickFile(e: RpcMainEvent): Promise<string[] | undefined> {
+    async showSaveDialog(
+      e: RpcMainEvent,
+      defaultPath: string
+    ): Promise<string | undefined> {
       return (
-        await dialog.showOpenDialog(browserWindow, {
-          properties: [
-            "openFile",
-            "multiSelections",
-            "promptToCreate",
-            "createDirectory",
-          ],
-          filters: [{ name: "Microsoft word files", extensions: ["docx"] }],
+        await dialog.showSaveDialog(browserWindow, {
+          defaultPath,
+          properties: ["showOverwriteConfirmation", "createDirectory"],
+          filters: [{ name: "Zip Archive", extensions: ["zip"] }],
         })
-      ).filePaths;
+      ).filePath;
     }
   }
 

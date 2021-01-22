@@ -39,7 +39,7 @@ class ExpectedState {
 const expectedStateOne = new ExpectedState(
   "src/__tests__/fixtures/state/templateSetOne",
   {
-    activeTemplatesFolder: "folderThree",
+    activeFolder: "folderThree",
     subfolders: {
       folderThree: {
         formData: {
@@ -80,7 +80,7 @@ const expectedStateOne = new ExpectedState(
 const expectedStateTwo = new ExpectedState(
   "src/__tests__/fixtures/state/templateSetTwo",
   {
-    activeTemplatesFolder: "folderOne",
+    activeFolder: "folderOne",
     subfolders: {
       folderOne: {
         formData: {
@@ -271,7 +271,7 @@ test("can delete templates", async () => {
 
   const expectedState = expectedStateTwo.get(directory);
   delete expectedState.templates.subfolders["folderOne"];
-  expectedState.templates.activeTemplatesFolder = "folderThree";
+  expectedState.templates.activeFolder = "folderThree";
 
   expect(store.getState()).toStrictEqual(expectedState);
 });
@@ -359,11 +359,10 @@ test("restoring files restores tags", async () => {
     ),
   ]);
 
-  assert(expectedState.templates.activeTemplatesFolder);
+  assert(expectedState.templates.activeFolder);
   const expectedFormData =
-    expectedState.templates.subfolders[
-      expectedState.templates.activeTemplatesFolder
-    ].formData;
+    expectedState.templates.subfolders[expectedState.templates.activeFolder]
+      .formData;
   expectedFormData["template 2 folder 1 file A"] = "Value A";
   expectedFormData["template 2 folder 1 file B"] = "Value B";
   expectedFormData["template 2 folder 1 file C"] = "Value C";
@@ -395,7 +394,7 @@ test("restoring files restores tags", async () => {
   await sleep(500);
   expect(store.getState()).toStrictEqual(expectedState);
 
-  const activeTemplateFolder = store.getState().templates.activeTemplatesFolder;
+  const activeTemplateFolder = store.getState().templates.activeFolder;
   assert(activeTemplateFolder);
   const formData = store.getState().templates.subfolders[activeTemplateFolder]
     .formData;
@@ -417,7 +416,7 @@ test("can change templates folder", async () => {
     path.join(directory, "folder1")
   );
 
-  expectedState.templates.activeTemplatesFolder = "folderThree";
+  expectedState.templates.activeFolder = "folderThree";
 
   expectedState.templates.subfolders["folder1"] =
     expectedState.templates.subfolders["folderOne"];
@@ -459,7 +458,7 @@ test("first template becomes active", async () => {
 
     templates: {
       subfolders: {},
-      activeTemplatesFolder: undefined,
+      activeFolder: undefined,
     },
   };
 
@@ -467,7 +466,7 @@ test("first template becomes active", async () => {
 
   fse.mkdirSync(path.join(directory, "temp"));
 
-  expectedState.templates.activeTemplatesFolder = "temp";
+  expectedState.templates.activeFolder = "temp";
   expectedState.templates.subfolders["temp"] = {
     formData: {},
     docxFiles: {},
@@ -485,12 +484,12 @@ test("deleting last template unsets active template", async () => {
   await fse.remove(path.join(directory, "folderOne"));
 
   await sleep(500);
-  expect(store.getState().templates.activeTemplatesFolder).toBe("folderThree");
+  expect(store.getState().templates.activeFolder).toBe("folderThree");
 
   await fse.remove(path.join(directory, "folderThree"));
 
   await sleep(500);
-  expect(store.getState().templates.activeTemplatesFolder).toBe("folderTwo");
+  expect(store.getState().templates.activeFolder).toBe("folderTwo");
 
   await fse.remove(path.join(directory, "folderTwo"));
 

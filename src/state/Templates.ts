@@ -16,28 +16,27 @@ import chokidar from "chokidar";
 import path, { basename } from "path";
 import { assert } from "console";
 
-export interface DocxFileData {
+export interface DocxTemplate {
   contentBase64?: string;
   tags: string[];
   isLoading: boolean;
-  malformed: boolean;
+  malformed?: boolean;
 }
 
-// Template is a folder containing docx files with {% %} tags.
-interface TemplateData {
+export interface FolderData {
   docxFiles: {
-    [path: string]: DocxFileData;
+    [path: string]: DocxTemplate;
   };
   formData: { [tag: string]: string };
 }
 
 interface SubfoldersMap {
-  [folderName: string]: TemplateData;
+  [folderName: string]: FolderData;
 }
 
 export interface TemplatesState {
   subfolders: SubfoldersMap;
-  activeTemplatesFolder?: string;
+  activeFolder?: string;
 }
 
 const initialState: TemplatesState = { subfolders: {} };
@@ -49,9 +48,9 @@ const templatesSlice = createSlice({
     resetTemplates(state, action: PayloadAction<SubfoldersMap>) {
       state.subfolders = action.payload;
       const keys = Object.keys(state.subfolders);
-      state.activeTemplatesFolder = undefined;
+      state.activeFolder = undefined;
       if (keys.length > 0) {
-        state.activeTemplatesFolder = keys[0];
+        state.activeFolder = keys[0];
       }
     },
 
@@ -59,40 +58,38 @@ const templatesSlice = createSlice({
       state,
       action: PayloadAction<{
         fullPath: string;
-        templateData: TemplateData;
+        templateData: FolderData;
       }>
     ) {
       state.subfolders[path.basename(action.payload.fullPath)] =
         action.payload.templateData;
-      if (state.activeTemplatesFolder === undefined)
-        state.activeTemplatesFolder = path.basename(action.payload.fullPath);
+      if (state.activeFolder === undefined)
+        state.activeFolder = path.basename(action.payload.fullPath);
     },
 
     removeTemplate(state, action: PayloadAction<{ fullPath: string }>) {
       delete state.subfolders[path.basename(action.payload.fullPath)];
 
-      if (
-        path.basename(action.payload.fullPath) === state.activeTemplatesFolder
-      ) {
+      if (path.basename(action.payload.fullPath) === state.activeFolder) {
         const keys = Object.keys(state.subfolders);
         if (keys.length > 0) {
-          state.activeTemplatesFolder = keys[0];
+          state.activeFolder = keys[0];
         } else {
-          state.activeTemplatesFolder = undefined;
+          state.activeFolder = undefined;
         }
       }
     },
 
     setActiveSubfolder(state, action: PayloadAction<{ folderName: string }>) {
       if (path.basename(action.payload.folderName) in state.subfolders) {
-        state.activeTemplatesFolder = path.basename(action.payload.folderName);
+        state.activeFolder = path.basename(action.payload.folderName);
       }
     },
 
     setTagValue(state, action: PayloadAction<{ tag: string; value: string }>) {
-      if (!state.activeTemplatesFolder) return;
+      if (!state.activeFolder) return;
 
-      const activeTemplate = state.subfolders[state.activeTemplatesFolder];
+      const activeTemplate = state.subfolders[state.activeFolder];
       assert(activeTemplate);
 
       activeTemplate.formData[action.payload.tag] = action.payload.value;
@@ -273,17 +270,13 @@ const loadDocxFiles = (parentDirectory: string) => async (
 
 export function useActiveFolderPath() {
   return useTypedSelector((state) =>
-    path.join(
-      state.settings.templatesPath,
-      state.templates.activeTemplatesFolder ?? ""
-    )
+    path.join(state.settings.templatesPath, state.templates?.activeFolder ?? "")
   );
 }
 
 export function useActiveTemplate() {
   return useTypedSelector(
-    (state) =>
-      state.templates.subfolders[state.templates.activeTemplatesFolder ?? ""]
+    (state) => state.templates?.subfolders[state.templates.activeFolder ?? ""]
   );
 }
 

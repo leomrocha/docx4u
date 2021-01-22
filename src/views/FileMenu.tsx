@@ -50,6 +50,7 @@ const useStyles = makeStyles({
 
   tags: {
     display: "flex",
+    flexWrap: "wrap",
     borderRadius: 10,
     margin: "auto",
     "& > *": {
@@ -116,7 +117,7 @@ export default function FileMenu(props: FileMenuProps) {
                 </React.Fragment>
               ) : (
                 fileData.tags.map((x) => (
-                  <Chip key={x} label={x} color="secondary"></Chip>
+                  <Chip key={x} label={x} color="primary"></Chip>
                 ))
               )}
             </div>
